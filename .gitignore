@@ -1,0 +1,7 @@
+/**/docs/
+/**/.env
+/**/.old/
+
+# NixOS
+/**/result
+/**/hardware-configuration.nix
