@@ -10,6 +10,7 @@
     # Networking
     networking.hostName = "e-corp";
     networking.ipv4 = "192.168.1.2";
+    networking.firewall.enable = true;
 
     # System
     nix.gc.enable = true;
