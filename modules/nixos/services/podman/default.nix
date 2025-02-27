@@ -14,6 +14,9 @@
       podman.enable = lib.mkDefault true;
       podman.dockerCompat = lib.mkDefault true;
       podman.defaultNetwork.settings.dns_enabled = lib.mkDefault true;
+      podman.autoPrune.enable = true;
+      podman.autoPrune.dates = "daily";
+      podman.autoPrune.flags = [ "--all" "--force" "--volumes" ];
       oci-containers.backend = lib.mkDefault "podman";
     };
   };
