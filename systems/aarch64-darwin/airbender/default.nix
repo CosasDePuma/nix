@@ -9,27 +9,18 @@
     security.touchID.enable = true;
     macos.finder.automanaged = true;
     macos.homebrew.enable = true;
-    macos.homebrew.storeApps = { "wireguard" = 1451685025; };
-    macos.homebrew.casks = let appsDir = "/Applications/Homebrew"; in [
-      # Artificial Intelligence
-      { name = "ollama";             args = { appdir = "${appsDir}/Artificial Intelligence"; }; }
-      { name = "lm-studio";          args = { appdir = "${appsDir}/Artificial Intelligence"; }; }
-      # Communication
-      { name = "discord";            args = { appdir = "${appsDir}/Communication"; }; }
-      { name = "telegram";           args = { appdir = "${appsDir}/Communication"; }; }
-      { name = "whatsapp";           args = { appdir = "${appsDir}/Communication"; }; }
-      # Development
-      { name = "visual-studio-code"; args = { appdir = "${appsDir}/Development"; }; }
-      { name = "warp";               args = { appdir = "${appsDir}/Development"; }; }
-      # Entertainment
-      { name = "spotify";            args = { appdir = "${appsDir}/Entertainment"; }; }
-      { name = "steam";              args = { appdir = "${appsDir}/Entertainment"; }; }
-      # HomeLab
-      { name = "bitwarden";          args = { appdir = "${appsDir}/HomeLab"; }; }
-      # Utilities
-      { name = "cleanmymac";         args = { appdir = "${appsDir}/Utilities"; }; }
-      { name = "the-unarchiver";     args = { appdir = "${appsDir}/Utilities"; }; }
-    ];
+    macos.homebrew.storeApps = { "cleanmymac" = 1339170533; "steamlink" = 1246969117; "wireguard" = 1451685025; };
+    macos.homebrew.casks = let
+        appsDir = "/Applications/Homebrew";
+        organize = folder: apps: builtins.map (name: { inherit name; args = { appdir = "${appsDir}/${folder}"; }; }) apps;
+      in builtins.concatLists [
+        (organize "Artificial Intelligence" [ "ollama" "lm-studio" ])
+        (organize "Communication"           [ "discord" "telegram" "whatsapp" ])
+        (organize "Development"             [ "trae" "warp" ])
+        (organize "Entertainment"           [ "spotify" "steam" ])
+        (organize "HomeLab"                 [ "bitwarden" ])
+        (organize "Utilities"               [ "brave-browser" "the-unarchiver" "vlc" "webtorrent" ])
+      ];
 
     # Nix-Darwin
     nixos.version = 6;
