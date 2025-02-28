@@ -4,7 +4,6 @@
     nix.enable = lib.mkForce true;
     nix.settings.experimental-features = lib.mkDefault [ "nix-command" "flakes" ];
     nix.optimise.automatic = lib.mkDefault true;
-    nix.optimise.dates = lib.mkDefault "daily";
     nix.optimise.persistent = lib.mkDefault true;
     nix.settings.auto-optimise-store = lib.mkDefault true;
     nix.gc.automatic = lib.mkDefault true;
