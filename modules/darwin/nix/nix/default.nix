@@ -1,20 +1,9 @@
-{ config, options, lib, namespace, ... }: {
-  options.${namespace}.nix.gc = {
-    enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable Nix garbage collection.";
-    };
-  };
-
+{ config, lib, ... }: {
   config = {
-    nix.enable = lib.mkForce true;
+    nix.enable = lib.mkForce false;
+    nix.extraOptions = lib.mkDefault "extra-platforms = x86_64-darwin aarch64-darwin";
+    nix.settings.auto-optimise-store = lib.mkForce false;  # https://github.com/NixOS/nix/issues/7273
     nix.settings.experimental-features = lib.mkDefault [ "nix-command" "flakes" ];
-    nix.gc = lib.mkIf config.${namespace}.nix.gc.enable {
-      automatic = lib.mkDefault true;
-      dates = lib.mkDefault "weekly";
-      options = lib.mkDefault "--delete-older-than 7d";
-      persistent = lib.mkDefault true;
-    };
+    nixpkgs.config.allowUnfree = lib.mkDefault true;
   };
 }

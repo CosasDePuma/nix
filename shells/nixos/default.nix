@@ -15,13 +15,13 @@
     $ nixos-remote github:cosasdepuma/nix#<system> <host>
       Rebuild NixOS on a remote host via SSH.
 
-    $ nix-darwin --flake github:cosasdepuma/nix#
+    $ darwin-rebuild switch --flake github:cosasdepuma/nix#
       Change the Nix configuration on macOS.
 
     HELP
     }
 
-    alias nix-darwin='nix run nix-darwin#darwin-rebuild switch --'
+    alias darwin-rebuild='nix run nix-darwin#darwin-rebuild --'
 
     nixos-remote() {
       test $# -lt 2 && { helpdev; return 1; }
