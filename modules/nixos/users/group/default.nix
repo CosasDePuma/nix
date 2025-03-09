@@ -1,5 +1,5 @@
 { config, options, lib, namespace, ... }: {
-  options.${namespace}.users = {
+  options."${namespace}".users = {
     group = lib.mkOption {
       type = lib.types.singleLineStr;
       default = "users";
@@ -8,6 +8,6 @@
   };
 
   config.users = {
-    groups."${config.${namespace}.users.group}" = lib.mkDefault {};
+    groups."${config."${namespace}".users.group}" = lib.mkDefault {};
   };
 }

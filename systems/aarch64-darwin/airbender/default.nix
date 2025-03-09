@@ -21,6 +21,9 @@
         (organize "HomeLab"                 [ "bitwarden" ])
         (organize "Utilities"               [ "brave-browser" "the-unarchiver" "vlc" "webtorrent" ])
       ];
+    
+    # Networking
+    networking.hostName = "airbender";
 
     # Nix-Darwin
     nixos.version = 6;

@@ -1,5 +1,5 @@
 { config, options, lib, namespace, ... }: {
-  options.${namespace}.services.fail2ban = {
+  options."${namespace}".services.fail2ban = {
     enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
@@ -7,7 +7,7 @@
     };
   };
 
-  config.services.fail2ban = lib.mkIf config.${namespace}.services.fail2ban.enable {
+  config.services.fail2ban = lib.mkIf config."${namespace}".services.fail2ban.enable {
     enable = lib.mkDefault true;
     maxretry = lib.mkDefault 3;
     bantime = lib.mkDefault "1h";

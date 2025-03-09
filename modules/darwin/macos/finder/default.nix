@@ -1,5 +1,5 @@
 { config, options, lib, namespace, ... }: {
-  options.${namespace}.macos.finder = {
+  options."${namespace}".macos.finder = {
     automanaged = lib.mkOption {
       type = lib.types.bool;
       default = false;
@@ -7,7 +7,7 @@
     };
   };
 
-  config.system.defaults.finder = lib.mkIf config.${namespace}.macos.finder.automanaged {
+  config.system.defaults.finder = lib.mkIf config."${namespace}".macos.finder.automanaged {
     # Desktop
     CreateDesktop = lib.mkDefault false;                  # Don't show desktop icons
     ShowExternalHardDrivesOnDesktop = lib.mkDefault true; # Show external hard drives on desktop

@@ -1,5 +1,5 @@
 { config, options, lib, namespace, ... }: {
-  options.${namespace}.nixos = {
+  options."${namespace}".nixos = {
     version = lib.mkOption {
       type = lib.types.singleLineStr;
       default = "25.05";
@@ -14,10 +14,10 @@
   };
 
   config = {
-    system.stateVersion = lib.mkDefault config.${namespace}.nixos.version;
-    system.autoUpgrade = lib.mkIf (config.${namespace}.nixos.followFlake != null) {
+    system.stateVersion = lib.mkDefault config."${namespace}".nixos.version;
+    system.autoUpgrade = lib.mkIf (config."${namespace}".nixos.followFlake != null) {
       enable = lib.mkDefault true;
-      flake = lib.mkDefault config.${namespace}.nixos.followFlake;
+      flake = lib.mkDefault config."${namespace}".nixos.followFlake;
       dates = lib.mkDefault "daily";
       operation = lib.mkDefault "switch";
       persistent = lib.mkDefault true;

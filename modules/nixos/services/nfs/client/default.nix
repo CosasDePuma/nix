@@ -1,5 +1,5 @@
 { config, options, lib, namespace, ... }: {
-  options.${namespace}.services.nfs.client = {
+  options."${namespace}".services.nfs.client = {
     server = lib.mkOption {
       type = lib.types.nullOr lib.types.singleLineStr;
       default = null;
@@ -14,8 +14,8 @@
   };
 
   config.fileSystems = let
-    server = config.${namespace}.services.nfs.client.server;
-    mountpoint = config.${namespace}.services.nfs.client.mountpoint;
+    server = config."${namespace}".services.nfs.client.server;
+    mountpoint = config."${namespace}".services.nfs.client.mountpoint;
   in lib.mkIf (server != null) {
     "${mountpoint}" = {
       device = "${server}";
