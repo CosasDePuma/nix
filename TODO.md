@@ -1,8 +1,16 @@
-- [x] Snowfall
-- [x] Shells: Nixos
-- [x] Nixos-Anywhere + Disko
-- [ ] System: E-Corp
-- [ ] Topology with [`nix-topology`](https://github.com/oddlama/nix-topology)
+# TO-DO
 
+- [x] Secured SSH
+- [ ] Grafana + Prometheus
+- [ ] Podman
+- [x] Fail2Ban: SSH
+- [ ] Fail2Ban: HTTP
+- [ ] Nginx
+- [ ] Certbot
+- [ ] Firewall
+
+# Review
+
+- [ ] SSH Hardening
 
   
