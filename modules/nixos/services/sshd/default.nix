@@ -1,5 +1,5 @@
 { config, options, lib, namespace, ... }: {
-  options.${namespace}.services.sshd = {
+  options."${namespace}".services.sshd = {
     enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
@@ -37,19 +37,19 @@
   };
 
   config = let
-    username = config.${namespace}.users.administrator.username;
-    sshPubKey = config.${namespace}.users.administrator.sshPubKey;
-  in lib.mkIf config.${namespace}.services.sshd.enable {
+    username = config."${namespace}".users.administrator.username;
+    sshPubKey = config."${namespace}".users.administrator.sshPubKey;
+  in lib.mkIf config."${namespace}".services.sshd.enable {
     # SSHd
     services.openssh.enable = lib.mkDefault true;
-    services.openssh.ports = lib.mkDefault [ config.${namespace}.services.sshd.port ];
+    services.openssh.ports = lib.mkDefault [ config."${namespace}".services.sshd.port ];
     services.openssh.openFirewall = lib.mkDefault true;
     services.openssh.authorizedKeysInHomedir = lib.mkDefault false;
     services.openssh.settings.KbdInteractiveAuthentication = lib.mkDefault (sshPubKey == null);
     services.openssh.settings.PasswordAuthentication = lib.mkDefault (sshPubKey == null);
     services.openssh.settings.PermitRootLogin = lib.mkDefault (if username != "root" then "no" else if sshPubKey == null then "yes" else "without-password");
-    services.openssh.settings.X11Forwarding = lib.mkDefault config.${namespace}.services.sshd.x11Support;
-    services.openssh.banner = lib.mkDefault config.${namespace}.services.sshd.banner;
+    services.openssh.settings.X11Forwarding = lib.mkDefault config."${namespace}".services.sshd.x11Support;
+    services.openssh.banner = lib.mkDefault config."${namespace}".services.sshd.banner;
 
     # SSH Agent
     security.pam.sshAgentAuth.enable = lib.mkDefault true;

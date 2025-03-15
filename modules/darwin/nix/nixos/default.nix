@@ -1,5 +1,5 @@
 { config, options, lib, namespace, ... }: {
-  options.${namespace}.nixos = {
+  options."${namespace}".nixos = {
     version = lib.mkOption {
       type = lib.types.int;
       default = "25.05";
@@ -7,5 +7,5 @@
     };
   };
 
-  config.system.stateVersion = lib.mkDefault config.${namespace}.nixos.version;
+  config.system.stateVersion = lib.mkDefault config."${namespace}".nixos.version;
 }

@@ -16,10 +16,10 @@
   config.networking = let
     hostname = config."${namespace}".networking.hostName;
   in {
+    dns = lib.mkDefault config."${namespace}".networking.dns;
     hostName = lib.mkDefault hostname;
-    hosts."127.0.0.1" = lib.mkDefault [ "localhost" "local.host" ];
-    hosts."127.0.0.2" = lib.mkDefault [ hostname  "${hostname}.home" "${hostname}.host" "${hostname}.lan" ];
-    nameservers = lib.mkDefault config."${namespace}".networking.dns;
+    localHostName = lib.mkDefault hostname;
+    computerName = lib.mkDefault hostname;
     search = lib.mkDefault [ "home" "host" "lan" ];
   };
 }

@@ -1,4 +1,7 @@
-{ namespace, ... }: {
+{ lib, namespace, ... }: let
+  domain = "kike.wtf";
+  ipv4 = "192.168.1.2";
+in {
   "${namespace}" = {
     # Hardware
     hardware.disk = "/dev/sda";
@@ -8,12 +11,11 @@
     i18n.timezone = "Europe/Madrid";
 
     # Networking
+    networking.ipv4 = ipv4;
     networking.hostName = "e-corp";
-    networking.ipv4 = "192.168.1.2";
-    networking.firewall.enable = true;
+    networking.firewall.enable = false;
 
     # System
-    nix.gc.enable = true;
     nixos.followFlake = "github:cosasdepuma/nix";
 
     # Users
@@ -21,19 +23,31 @@
     users.administrator.description = "Hello, friend.";
     users.administrator.sshPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP9RzisL6wVQK3scDyEPEpFgrcdFYkW9LssnWlORGXof nixos@infra";
 
+    # --- Server
+
+    # DNSmasq
+        # WG-Easy
+    oci-containers.dnsmasq.enable = true;
+    oci-containers.dnsmasq.records = { "${domain}" = ipv4; };
+
+    # WG-Easy
+    oci-containers.wg-easy.enable = true;
+    oci-containers.wg-easy.dns = [ ipv4 ];
+    oci-containers.wg-easy.publicHost = "vpn.${domain}";
+
     # ---- Services
 
-    # Fail2Ban
+    # Jails
     services.fail2ban.enable = true;
 
-    # NFS Client
+    # Shared folders
     services.nfs.client.server = "192.168.1.252:/mnt/nfs";
     services.nfs.client.mountpoint = "/mnt/nfs";
 
-    # Podman
-    services.podman.enable = true;
+    # OCI Containers
+    services.docker.enable = true;
 
-    # SSHd
+    # SSH
     services.sshd.enable = true;
     services.sshd.port = 10022;
   };

@@ -2,7 +2,7 @@
   lib.optionalAttrs (builtins.hasAttr "disko" inputs) {
     imports = [ inputs.disko.nixosModules.disko ];
 
-    options.${namespace}.hardware = {
+    options."${namespace}".hardware = {
       disk = lib.mkOption {
         type = lib.types.path;
         default = "/dev/disk/by-diskseq/1";
@@ -20,7 +20,7 @@
 
       # Disk
       disko.devices.disk."main" = {
-        device = config.${namespace}.hardware.disk;
+        device = config."${namespace}".hardware.disk;
         type = "disk";
         content.type = "gpt";
 

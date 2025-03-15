@@ -1,5 +1,5 @@
 { config, options, lib, namespace, ... }: {
-  options.${namespace}.security.touchID = {
+  options."${namespace}".security.touchID = {
     enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
@@ -7,5 +7,5 @@
     };
   };
 
-  config.security.pam.services.sudo_local.touchIdAuth = lib.mkDefault config.${namespace}.security.touchID.enable;
+  config.security.pam.services.sudo_local.touchIdAuth = lib.mkDefault config."${namespace}".security.touchID.enable;
 }

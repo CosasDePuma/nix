@@ -1,5 +1,5 @@
 { config, options, lib, namespace, ... }: {
-  options.${namespace}.macos.homebrew = {
+  options."${namespace}".macos.homebrew = {
     enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
@@ -26,12 +26,12 @@
   };
 
   config = {
-    homebrew.enable = lib.mkDefault config.${namespace}.macos.homebrew.enable;
+    homebrew.enable = lib.mkDefault config."${namespace}".macos.homebrew.enable;
     homebrew.global.autoUpdate = lib.mkDefault true;
     homebrew.global.brewfile = lib.mkDefault true;
-    homebrew.brews = lib.mkDefault config.${namespace}.macos.homebrew.brews;
-    homebrew.casks = lib.mkDefault config.${namespace}.macos.homebrew.casks;
-    homebrew.masApps = lib.mkDefault config.${namespace}.macos.homebrew.storeApps;
+    homebrew.brews = lib.mkDefault config."${namespace}".macos.homebrew.brews;
+    homebrew.casks = lib.mkDefault config."${namespace}".macos.homebrew.casks;
+    homebrew.masApps = lib.mkDefault config."${namespace}".macos.homebrew.storeApps;
     homebrew.onActivation.autoUpdate = lib.mkDefault true;
     homebrew.onActivation.cleanup = lib.mkDefault "zap";
   };
