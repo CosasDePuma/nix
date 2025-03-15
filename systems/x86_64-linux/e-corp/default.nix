@@ -1,8 +1,9 @@
 { config, lib, pkgs, namespace, ... }:
 let
-  flake = "github:cosasdepuma/nix";
-  user  = "elliot";   domain = "hackr.es";
-  ipv4  = "192.168.1.2"; gw4 = "192.168.1.1";
+  flake     = "github:cosasdepuma/nix";
+  user      = "elliot";   domain = "hackr.es";
+  ipv4      = "192.168.1.2"; gw4 = "192.168.1.1";
+  sshPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP9RzisL6wVQK3scDyEPEpFgrcdFYkW9LssnWlORGXof nixos";
 in {
   # +-----------------------------------------------------------------------------+
   # |                                  Hardware                                   |
@@ -52,7 +53,7 @@ in {
     isNormalUser = true;                              # Regular user account
     useDefaultShell = true;                           # Use default shell
     extraGroups = [ "wheel" ];                        # Grant superuser privileges
-    openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP9RzisL6wVQK3scDyEPEpFgrcdFYkW9LssnWlORGXof nixos@infra" ];
+    openssh.authorizedKeys.keys = [ sshPubKey ];      # Authorized SSH keys
   };
 
   # +-----------------------------------------------------------------------------+
@@ -63,7 +64,12 @@ in {
   # - Keep public IP synchronized using a domain.
   # - Protection against network information leaks.
 
-  services.duckdns = {}; # TODO: Implement DuckDNS
+  services.duckdns = {
+    enable = true;
+    tokenFile = "/run/agenix/duckdns-token";           # File with the DuckDNS token
+    domains = [ (builtins.replaceStrings ["."] [""] domain) ];
+  };
+  age.secrets."duckdns-token".file = ./duckdns-token.age;
 
   # +-----------------------------------------------------------------------------+
   # |                        Services: Secure Shell (SSH)                         |
