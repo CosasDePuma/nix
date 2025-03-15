@@ -1,5 +1,4 @@
 {
-    "editor.formatOnSave": true,
     "explorer.fileNesting.enabled": true,
     "explorer.fileNesting.patterns": {
         "flake.nix": "flake.lock"
