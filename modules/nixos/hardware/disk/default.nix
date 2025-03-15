@@ -1,6 +1,6 @@
 { config, options, lib, namespace, inputs, ... }:
   lib.optionalAttrs (builtins.hasAttr "disko" inputs) {
-    imports = [ inputs.disko.nixosModules.disko ];
+    imports = [ inputs.disko.nixosModules.default ];
 
     options."${namespace}".hardware = {
       disk = lib.mkOption {

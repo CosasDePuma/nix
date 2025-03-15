@@ -54,7 +54,7 @@ _: {
       (organize "Development"             [ "trae" "warp" ])
       (organize "Entertainment"           [ "spotify" "steam" ])
       (organize "HomeLab"                 [ "bitwarden" ])
-      (organize "Utilities"               [ "brave-browser" "the-unarchiver" "vlc" "webtorrent" ])
+      (organize "Utilities"               [ "brave-browser" "flameshot" "the-unarchiver" "vlc" "webtorrent" ])
     ];
   };
 
