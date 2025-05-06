@@ -51,6 +51,32 @@ in rec {
   };
 
   # +----------------------------------------------------------------------------+
+  # |                                  Packages                                  |
+  # +----------------------------------------------------------------------------+
+
+  environment.systemPackages = with pkgs; [
+    cifs-utils                                        # CIFS (SMB) filesystem support
+
+    (pkgs.writeShellScriptBin "task-backup"''
+      #!/usr/bin/env sh
+      # Backup script using rsync
+      # Usage: task-backup <source> <destination inside ''${BCKDIR}>
+
+      error () { ${pkgs.coreutils}/bin/printf '|ERR| %s\n' "''${1}" >&2; exit 1; }
+
+      ${pkgs.coreutils}/bin/test -n "''${1}"             || error "Source not specified"
+      ${pkgs.coreutils}/bin/test -n "''${2}"             || error "Destination not specified"
+      ${pkgs.coreutils}/bin/test -n "''${BCKDIR}"        || BCKDIR='/mnt/backups'
+      ${pkgs.coreutils}/bin/test -e "''${1}"             || error "Source not found"
+      ${pkgs.coreutils}/bin/test -d "''${BCKDIR}"        || error "Backup directory not found"
+      ${pkgs.coreutils}/bin/test -d "''${BCKDIR}/''${2}" || ${pkgs.coreutils}/bin/mkdir --parents "/mnt/backups/''${2}"
+
+      ${pkgs.rsync}/bin/rsync --archive  --compress --delete --progress --verbose "''${1}" "''${BCKDIR}/''${2}"
+      ${pkgs.coreutils}/bin/printf '|INF| %s sucessfully backed up!\n' "''${1}"
+    '')
+  ];
+
+  # +----------------------------------------------------------------------------+
   # |                              Package Manager                               |
   # +----------------------------------------------------------------------------+
 
@@ -66,6 +92,26 @@ in rec {
   # +----------------------------------------------------------------------------+
   # |                                  Services                                  |
   # +----------------------------------------------------------------------------+
+
+  # =========================== CRON (Scheduled Tasks) ===========================
+
+  services.cron = {
+    enable = true;                                    # Enable the CRON service
+    systemCronJobs = [
+      # Reboot the system every day at 04:00AM
+      "00 04  *  *  *  root /run/current-system/sw/bin/reboot"
+      # Backups using rsync custom script
+      "00 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/grafana/data/grafana.db'    'grafana/data'"
+      "00 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/grafana/plugins'            'grafana/'"
+      "05 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/komga/database.sqlite'      'komga/'"
+      "00 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/prometheus/'                'prometheus/'"
+      "05 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/traefik/acme.sql'           'traefik/'"
+      "00 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/vaultwarden/attachments'    'vaultwarden/'"
+      "00 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/vaultwarden/config.json'    'vaultwarden/'"
+      "00 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/vaultwarden/db.sqlite3'     'vaultwarden/'"
+      "00 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/vaultwarden/db.sqlite3-wal' 'vaultwarden/'"
+    ];
+  };
 
   # ============================= DDNS (Dynamic DNS) =============================
 
@@ -174,19 +220,27 @@ in rec {
 
   # ================================= Filesystem =================================
 
-  fileSystems."/mnt/media" = {
-    device = "//${nas}/Media";
-    fsType = "cifs";
-    options = [ "credentials=/run/agenix/smb-credentials" "nofail" "x-systemd.automount" "x-systemd.mount-timeout=30s" ];
-  };
-  environment.systemPackages = with pkgs; [ cifs-utils ];
+  fileSystems = let
+    mountSMB = src: dst: {
+      "${dst}" = {
+        device = src;
+        fsType = "cifs";
+        options = [ "credentials=/run/agenix/smb-credentials" "nofail" "x-systemd.automount" "x-systemd.mount-timeout=10m" ];
+      };
+    };
+  in (mountSMB "//${nas}/Backups" "/mnt/backups") // (mountSMB "//${nas}/Media" "/mnt/media");
 
-  systemd.tmpfiles.rules = lib.flatten (lib.mapAttrsToList (_: container:
-    lib.mapAttrsToList (_: mount:
-      lib.optional (lib.hasPrefix "/persistent" mount.hostPath) 
-        "d ${mount.hostPath} 0700 root root -"
-    ) (container.bindMounts or {})
-  ) config.containers);
+  systemd.tmpfiles.rules = lib.flatten (
+    (lib.mapAttrsToList (path: _:
+      lib.optional (lib.hasPrefix "/mnt" path) 
+          "d ${path} 0700 0 0 -"
+    ) config.fileSystems) ++
+    (lib.mapAttrsToList (_: container:
+      lib.mapAttrsToList (_: mount:
+        lib.optional (lib.hasPrefix "/persistent" mount.hostPath) 
+          "d ${mount.hostPath} 0700 9999 0 -"
+      ) (container.bindMounts or {})
+    ) config.containers));
 
   # ================================== Release ===================================
 
@@ -202,15 +256,29 @@ in rec {
 
   # =================================== Users ====================================
 
-  users.users."${user}" = {
-    createHome = true;
-    description = "Why so serious? ;)";               # Gotham reference
-    home = "/home/users/${user}";                     # Create home directory inside 'users' folder
-    password = null;                                  # Disable password authentication
-    isNormalUser = true;                              # Regular user account
-    useDefaultShell = true;                           # Use default shell
-    extraGroups = [ "wheel" ];                        # Grant superuser privileges
-    openssh.authorizedKeys.keys = [ sshPubKey ];      # Authorized SSH keys
+  users.users = {
+    # --- regular user ---
+    "${user}" = {                                     
+      createHome = true;
+      description = "Why so serious? ;)";             # Gotham reference
+      extraGroups = [ "wheel" ];                      # Grant superuser privileges
+      home = "/home/users/${user}";                   # Create home directory inside 'users' folder
+      isNormalUser = true;                            # Regular user account
+      openssh.authorizedKeys.keys = [ sshPubKey ];    # Authorized SSH keys
+      password = null;                                # Disable password authentication
+      useDefaultShell = true;                         # Use default shell
+    };
+    # --- container user ---
+    "container" = {
+      createHome = false;                             # Disable home directory creation
+      description = "Container users";                # Description
+      group = "nogroup";                              # Disable groups
+      home = "/var/empty";                            # Disable home directory
+      isNormalUser = true;                            # System user account
+      password = null;                                # Disable password authentication
+      shell = "/run/current-system/sw/bin/nologin";   # Disable shell access
+      uid = 9999;                                     # Force specific UID to match container users
+    };
   };
 
   # +----------------------------------------------------------------------------+
@@ -236,43 +304,10 @@ in rec {
       hostAddress = ipv4; localAddress = addr4;       # Set the host and local addresses
       config = { system.stateVersion = config.system.stateVersion; } // cfg;
     };
-  in {
-
-    # ------------------------ Tarpit: HTTP (Web Server) -------------------------
-
-    "vhost" = mkVM "10.0.0.2" {
-      services.nginx = {
-        enable = true;
-        defaultListen = [{ addr = "0.0.0.0"; port = 80; }];
-        virtualHosts = {
-          "default" = {
-            default = true;
-            extraConfig = "error_page 301 @30x; charset utf-8; source_charset utf-8;";
-            locations = {
-              "/" = { root = ./metafiles; tryFiles = "$uri @redirect"; };
-              "@30x" = { return = "200 ''"; extraConfig = "default_type '';"; };
-              "@redirect".return = "301 https://www.youtube.com/watch?v=dQw4w9WgXc"; };
-          };
-        };
-      };
-      networking.firewall.allowedTCPPorts = builtins.map (listen: listen.port) config.containers."vhost".config.services.nginx.defaultListen;
+    volumeUser = user: {                              # Force specific UID for user inside containers
+      "${user}" = { uid = lib.mkForce 9999; isSystemUser = lib.mkForce true; shell = "/run/current-system/sw/bin/nologin"; };
     };
-
-    # ------------------------ Tarpit: SSH (Secure Shell) ------------------------
-
-    "endlessh" = mkVM "10.0.0.1" {
-      services.endlessh-go = {
-        enable = true;                                # Enable the endlessh service
-        listenAddress = "0.0.0.0"; port = 22;         # Address to listen on (ssh)
-        openFirewall = true;                          # Open the firewall for the service
-        prometheus = {
-          enable = true;                              # Enable Prometheus metrics
-          listenAddress = "0.0.0.0"; port = 2121;     # Address to listen on (prometheus)
-        };
-      };
-      networking.firewall.allowedTCPPorts = [ config.containers."endlessh".config.services.endlessh-go.prometheus.port ];
-    } // { forwardPorts = [ { hostPort = 22; containerPort = config.containers."endlessh".config.services.endlessh-go.port; } ]; };
-
+  in {
     # ---------------------------- Metrics Dashboard -----------------------------
 
     "grafana" = mkVM "10.0.0.12" {
@@ -286,8 +321,9 @@ in rec {
           };
         };
       };
+      users.users = volumeUser "grafana";
       networking.firewall.allowedTCPPorts = [ config.containers."grafana".config.services.grafana.settings.server.http_port ];
-    } // { bindMounts."/var/lib/grafana/data" = { hostPath = "/persistent/grafana"; isReadOnly = false; }; };
+    } // { bindMounts."${config.containers."grafana".config.services.grafana.dataDir}" = { hostPath = "/persistent/grafana"; isReadOnly = false; }; };
 
     # ---------------------------- Metrics Monitoring ----------------------------
 
@@ -310,15 +346,31 @@ in rec {
           }
         ];
       };
+      users.users = volumeUser "prometheus";
       networking.firewall.allowedTCPPorts = [ config.containers."prometheus".config.services.prometheus.port ];
     } // { bindMounts."/var/lib/prometheus2/data" = { hostPath = "/persistent/prometheus"; isReadOnly = false; }; };
 
+    # ---------------------- Open Publication Distribution -----------------------
+
+    "komga" = mkVM "10.0.0.15" {
+      services.komga = {
+        enable = true;
+        openFirewall = true;
+        settings.server.port = 8080;
+      };
+      users.users = volumeUser "komga";
+    } // { bindMounts = {
+      "/srv" = { hostPath = "/mnt/media"; isReadOnly = true; };
+      "${config.containers."komga".config.services.komga.stateDir}" = { hostPath = "/persistent/komga"; isReadOnly = false; };
+    }; };
+
     # ----------------------------- Password Manager -----------------------------
 
-    "vaultwarden" = mkVM "10.0.0.13" {
+    "vaultwarden" = mkVM "10.0.0.14" {
       services.vaultwarden = {
         enable = true;                                # Enable the prometheus service
         dbBackend = "sqlite";                         # Database backend
+        backupDir = "/srv";                           # Backup directory
         config = {
           ROCKET_ADDRESS = "0.0.0.0";
           ROCKET_PORT = 8000;                         # Port to listen on
@@ -329,26 +381,14 @@ in rec {
         };
         environmentFile = "/run/.secrets/vaultwarden-passwd";
       };
+      users.users = volumeUser "vaultwarden";
       networking.firewall.allowedTCPPorts = [ config.containers."vaultwarden".config.services.vaultwarden.config.ROCKET_PORT ];
     } // { bindMounts = {
       "/run/.secrets" = { hostPath = "/run/agenix"; isReadOnly = true; };
       "/var/lib/vaultwarden" = { hostPath = "/persistent/vaultwarden"; isReadOnly = false; };
     }; };
 
-    # --------------------- Open Publication Distribution ---------------------
-
-    "komga" = mkVM "10.0.0.14" {
-      services.komga = {
-        enable = true;
-        openFirewall = true;
-        settings.server.port = 8080;
-      };
-    } // { bindMounts = {
-      "/mnt/media" = { hostPath = "/mnt/media"; isReadOnly = true; };
-      "/var/lib/komga" = { hostPath = "/persistent/komga"; isReadOnly = false; };
-    }; };
-
-    # ----------------------------- Reverse Proxy -----------------------------
+    # ------------------------------ Reverse Proxy -------------------------------
 
     "traefik" = mkVM "10.0.0.10" {
       services.traefik = {
@@ -405,7 +445,7 @@ in rec {
             # ------------------------------- Routes ---------------------------------
 
             # --- root (sub)domain ---
-            routers."vhost"  = { rule = "HostRegexp(`.*`)"; service = "vhost"; };
+            routers."vhost"  = { rule = "HostRegexp(`.*`)"; service = "vhost"; middlewares = [ "default@file" ]; };
             services."vhost".loadBalancer.servers = [{
               url = "http://${config.containers."vhost".localAddress}:${toString (builtins.head config.containers."vhost".config.services.nginx.defaultListen).port}"; }];
 
@@ -415,14 +455,14 @@ in rec {
               url = "http://${config.containers."komga".localAddress}:${toString config.containers."komga".config.services.komga.settings.server.port}"; }];
 
             # --- metrics subdomain ---
-            routers."grafana"  = { rule = "Host(`metrics.${domain}`)"; service = "grafana"; };
-            services."grafana".loadBalancer.servers = [{
-              url = "http://${config.containers."grafana".localAddress}:${toString config.containers."grafana".config.services.grafana.settings.server.http_port}"; }];
-
-            # --- monitor subdomain ---
-            routers."prometheus"  = { rule = "Host(`monitor.${domain}`)"; service = "prometheus"; };
+            routers."prometheus"  = { rule = "Host(`metrics.${domain}`)"; service = "prometheus"; };
             services."prometheus".loadBalancer.servers = [{
               url = "http://${config.containers."prometheus".localAddress}:${toString config.containers."prometheus".config.services.prometheus.port}"; }];
+
+            # --- monitor subdomain ---
+            routers."grafana"  = { rule = "Host(`monitor.${domain}`)"; service = "grafana"; };
+            services."grafana".loadBalancer.servers = [{
+              url = "http://${config.containers."grafana".localAddress}:${toString config.containers."grafana".config.services.grafana.settings.server.http_port}"; }];
 
             # --- vault subdomain ---
             routers."vaultwarden"  = { rule = "Host(`vault.${domain}`)"; service = "vaultwarden"; };
@@ -508,6 +548,7 @@ in rec {
           };
         };
       };
+      users.users = volumeUser "traefik";
       networking.firewall.allowedTCPPorts = [8080] ++
         builtins.map (e: lib.strings.toInt (builtins.elemAt (lib.strings.splitString ":" e.address) 1))
           (builtins.attrValues config.containers."traefik".config.services.traefik.staticConfigOptions.entryPoints);
@@ -518,5 +559,41 @@ in rec {
         "/var/lib/traefik" = { hostPath = "/persistent/traefik"; isReadOnly = false; };
       };
     };
+
+    # ------------------------ Tarpit: HTTP (Web Server) -------------------------
+
+    "vhost" = mkVM "10.0.0.2" {
+      services.nginx = {
+        enable = true;
+        defaultListen = [{ addr = "0.0.0.0"; port = 80; }];
+        virtualHosts = {
+          "default" = {
+            default = true;
+            extraConfig = "error_page 301 @30x; charset utf-8; source_charset utf-8;";
+            locations = {
+              "/" = { root = ./metafiles; tryFiles = "$uri @redirect"; };
+              "@30x" = { return = "200 ''"; extraConfig = "default_type '';"; };
+              "@redirect".return = "301 https://www.youtube.com/watch?v=dQw4w9WgXc"; };
+          };
+        };
+      };
+      networking.firewall.allowedTCPPorts = builtins.map (listen: listen.port) config.containers."vhost".config.services.nginx.defaultListen;
+    };
+
+    # ------------------------ Tarpit: SSH (Secure Shell) ------------------------
+
+    "endlessh" = mkVM "10.0.0.1" {
+      services.endlessh-go = {
+        enable = true;                                # Enable the endlessh service
+        listenAddress = "0.0.0.0"; port = 22;         # Address to listen on (ssh)
+        openFirewall = true;                          # Open the firewall for the service
+        extraOptions = [ "-geoip_supplier=ip-api" ];  # Enable Geohash
+        prometheus = {
+          enable = true;                              # Enable Prometheus metrics
+          listenAddress = "0.0.0.0"; port = 2121;     # Address to listen on (prometheus)
+        };
+      };
+      networking.firewall.allowedTCPPorts = [ config.containers."endlessh".config.services.endlessh-go.prometheus.port ];
+    } // { forwardPorts = [ { hostPort = 22; containerPort = config.containers."endlessh".config.services.endlessh-go.port; } ]; };
   };
 }

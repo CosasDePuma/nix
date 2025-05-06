@@ -45,16 +45,21 @@ _: {
       "steamlink"  = 1246969117;                       # - Remote control streaming for Steam
       "wireguard"  = 1451685025;                       # - VPN client
     };
+    brews = [
+      "direnv"                                         # - Automatic environment switching
+      "git"                                            # - Version control system
+      "oh-my-posh"                                     # - Agnostic shell theme engine
+    ];
     casks = let
       appsDir = "/Applications/Homebrew";              # Default apps directory
       organize = folder: apps: builtins.map (name: { inherit name; args = { appdir = "${appsDir}/${folder}"; }; }) apps;
     in builtins.concatLists [
-      (organize "Artificial Intelligence" [ "ollama" "lm-studio" ])
+      (organize "Artificial Intelligence" [ "claude" "ollama" "lm-studio" ])
       (organize "Communication"           [ "discord" "telegram" "whatsapp" ])
-      (organize "Development"             [ "cursor" "orbstack" "warp" ])
-      (organize "Entertainment"           [ "heroic" "whisky" "spotify" "steam" ])
+      (organize "Development"             [ "orbstack" "outerbase-studio" "visual-studio-code" "whisky" "warp" ])
+      (organize "Entertainment"           [ "spotify" "steam" ])
       (organize "HomeLab"                 [ "bitwarden" ])
-      (organize "Utilities"               [ "brave-browser" "flameshot" "the-unarchiver" "vlc" "webtorrent" ])
+      (organize "Utilities"               [ "balenaetcher" "brave-browser" "flameshot" "the-unarchiver" "vlc" "webtorrent" ])
     ];
   };
 
