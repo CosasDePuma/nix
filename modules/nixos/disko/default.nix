@@ -4,13 +4,14 @@
 
     options."${namespace}".disko = {
       disk = lib.mkOption {
-        type = lib.types.path;
-        default = "/dev/disk/by-diskseq/1";
+        type = lib.types.nullOr lib.types.path;
+        default = null;
+        example = "/dev/disk/by-diskseq/1";
         description = "The device to install NixOS on.";
       };
     };
 
-    config = {
+    config = lib.mkIf (config."${namespace}".disko.disk != null) {
       # Boot
       boot.readOnlyNixStore = lib.mkDefault true;
       boot.supportedFilesystems = lib.mkForce [ "btrfs" ];
