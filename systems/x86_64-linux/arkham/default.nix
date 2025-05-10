@@ -1,7 +1,7 @@
 { config, lib, pkgs, namespace, ... }:
 let
   user      = "joker";       nas = "192.168.1.3";
-  ipv4      = "192.168.1.2"; gw4 = "192.168.1.1";
+  ipv4      = "192.168.1.4"; gw4 = "192.168.1.1";
   domain    = "kike.wtf"; provider = "cloudflare";
   sshPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP9RzisL6wVQK3scDyEPEpFgrcdFYkW9LssnWlORGXof nixos";
 in rec {
@@ -9,7 +9,7 @@ in rec {
   # |                                  Hardware                                  |
   # +----------------------------------------------------------------------------+
 
-  "${namespace}".disko.disk = "/dev/sda";             # Hardware disk used by disko to create the partitions (module!)
+  "${namespace}".disko = { devices = [ "/dev/sda" ]; impermanence = true; };
 
   # +----------------------------------------------------------------------------+
   # |                            Internationalization                            |
@@ -101,15 +101,15 @@ in rec {
       # Reboot the system every day at 04:00AM
       "00 04  *  *  *  root /run/current-system/sw/bin/reboot"
       # Backups using rsync custom script
-      "00 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/grafana/data/grafana.db'    'grafana/data'"
-      "00 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/grafana/plugins'            'grafana/'"
-      "05 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/komga/database.sqlite'      'komga/'"
-      "00 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/prometheus/'                'prometheus/'"
-      "05 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/traefik/acme.sql'           'traefik/'"
-      "00 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/vaultwarden/attachments'    'vaultwarden/'"
-      "00 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/vaultwarden/config.json'    'vaultwarden/'"
-      "00 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/vaultwarden/db.sqlite3'     'vaultwarden/'"
-      "00 */6  *  *  * root /run/current-system/sw/bin/task-backup '/persistent/vaultwarden/db.sqlite3-wal' 'vaultwarden/'"
+      "00 10  *  *  * root /run/current-system/sw/bin/task-backup '/nix/persist/grafana/data/grafana.db'    'grafana/data'"
+      "00 10  *  *  * root /run/current-system/sw/bin/task-backup '/nix/persist/grafana/plugins'            'grafana/'"
+      "00 10  *  *  * root /run/current-system/sw/bin/task-backup '/nix/persist/komga/database.sqlite'      'komga/'"
+      "00 10  *  *  * root /run/current-system/sw/bin/task-backup '/nix/persist/prometheus/'                'prometheus/'"
+      "00 10  *  *  * root /run/current-system/sw/bin/task-backup '/nix/persist/traefik/acme.sql'           'traefik/'"
+      "00 10  *  *  * root /run/current-system/sw/bin/task-backup '/nix/persist/vaultwarden/attachments'    'vaultwarden/'"
+      "00 10  *  *  * root /run/current-system/sw/bin/task-backup '/nix/persist/vaultwarden/config.json'    'vaultwarden/'"
+      "00 10  *  *  * root /run/current-system/sw/bin/task-backup '/nix/persist/vaultwarden/db.sqlite3'     'vaultwarden/'"
+      "00 10  *  *  * root /run/current-system/sw/bin/task-backup '/nix/persist/vaultwarden/db.sqlite3-wal' 'vaultwarden/'"
     ];
   };
 
@@ -185,6 +185,7 @@ in rec {
   # |                                  Secrets                                  |
   # +----------------------------------------------------------------------------+
 
+  age.identityPaths = builtins.map (key: "/nix/persist/.system${key.path}") (config.services.openssh.hostKeys);
   age.secrets = let mkSecret = file: { inherit file; owner = "root"; group = "root"; mode = "0400"; }; in {
     "acme-token"         = mkSecret ./secrets/acme-token.age;
     "duckdns-token"      = mkSecret ./secrets/duckdns-token.age;
@@ -237,7 +238,7 @@ in rec {
     ) config.fileSystems) ++
     (lib.mapAttrsToList (_: container:
       lib.mapAttrsToList (_: mount:
-        lib.optional (lib.hasPrefix "/persistent" mount.hostPath) 
+        lib.optional (lib.hasPrefix "/nix/persist" mount.hostPath) 
           "d ${mount.hostPath} 0700 9999 0 -"
       ) (container.bindMounts or {})
     ) config.containers));
@@ -323,7 +324,7 @@ in rec {
       };
       users.users = volumeUser "grafana";
       networking.firewall.allowedTCPPorts = [ config.containers."grafana".config.services.grafana.settings.server.http_port ];
-    } // { bindMounts."${config.containers."grafana".config.services.grafana.dataDir}" = { hostPath = "/persistent/grafana"; isReadOnly = false; }; };
+    } // { bindMounts."${config.containers."grafana".config.services.grafana.dataDir}" = { hostPath = "/nix/persist/grafana"; isReadOnly = false; }; };
 
     # ---------------------------- Metrics Monitoring ----------------------------
 
@@ -348,7 +349,7 @@ in rec {
       };
       users.users = volumeUser "prometheus";
       networking.firewall.allowedTCPPorts = [ config.containers."prometheus".config.services.prometheus.port ];
-    } // { bindMounts."/var/lib/prometheus2/data" = { hostPath = "/persistent/prometheus"; isReadOnly = false; }; };
+    } // { bindMounts."/var/lib/prometheus2/data" = { hostPath = "/nix/persist/prometheus"; isReadOnly = false; }; };
 
     # ---------------------- Open Publication Distribution -----------------------
 
@@ -361,7 +362,7 @@ in rec {
       users.users = volumeUser "komga";
     } // { bindMounts = {
       "/srv" = { hostPath = "/mnt/media"; isReadOnly = true; };
-      "${config.containers."komga".config.services.komga.stateDir}" = { hostPath = "/persistent/komga"; isReadOnly = false; };
+      "${config.containers."komga".config.services.komga.stateDir}" = { hostPath = "/nix/persist/komga"; isReadOnly = false; };
     }; };
 
     # ----------------------------- Password Manager -----------------------------
@@ -385,7 +386,7 @@ in rec {
       networking.firewall.allowedTCPPorts = [ config.containers."vaultwarden".config.services.vaultwarden.config.ROCKET_PORT ];
     } // { bindMounts = {
       "/run/.secrets" = { hostPath = "/run/agenix"; isReadOnly = true; };
-      "/var/lib/vaultwarden" = { hostPath = "/persistent/vaultwarden"; isReadOnly = false; };
+      "/var/lib/vaultwarden" = { hostPath = "/nix/persist/vaultwarden"; isReadOnly = false; };
     }; };
 
     # ------------------------------ Reverse Proxy -------------------------------
@@ -556,7 +557,7 @@ in rec {
       forwardPorts = [{ hostPort = 443; containerPort = lib.strings.toInt (builtins.elemAt (lib.strings.splitString ":" config.containers."traefik".config.services.traefik.staticConfigOptions.entryPoints."https".address) 1); }];
       bindMounts = {
         "/run/.secrets" = { hostPath = "/run/agenix"; isReadOnly = true; };
-        "/var/lib/traefik" = { hostPath = "/persistent/traefik"; isReadOnly = false; };
+        "/var/lib/traefik" = { hostPath = "/nix/persist/traefik"; isReadOnly = false; };
       };
     };
 

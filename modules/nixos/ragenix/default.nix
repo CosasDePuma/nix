@@ -1,6 +1,6 @@
 { config, lib, inputs, ... }:
-  lib.optionalAttrs (builtins.hasAttr "agenix" inputs) {
-    imports = [ inputs.agenix.nixosModules.default ];
+  lib.optionalAttrs (builtins.hasAttr "ragenix" inputs) {
+    imports = [ inputs.ragenix.nixosModules.default ];
 
     config = {
       age.identityPaths = lib.mkDefault (lib.optionals
