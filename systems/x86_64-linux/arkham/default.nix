@@ -20,6 +20,20 @@ in rec {
   time.timeZone = "Europe/Madrid";                    # System timezone
 
   # +----------------------------------------------------------------------------+
+  # |                                  Logging                                   |
+  # +----------------------------------------------------------------------------+
+
+  # ============================ Executables Logging =============================
+
+  security.auditd.enable = true;
+  security.audit = {
+    enable = true;                                    # Enable audit (journalctl -f)
+    rules = [
+      "-a exit,always -F arch=b64 -S execve"          # Log all executed commands
+    ];
+  };
+
+  # +----------------------------------------------------------------------------+
   # |                                  Network                                   |
   # +----------------------------------------------------------------------------+
 

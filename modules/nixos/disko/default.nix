@@ -124,38 +124,41 @@
             "com.sun:auto-snapshot" = lib.mkDefault "false";
           };
 
-          datasets = {
-            "nixos" = {
-              type               = "zfs_fs";
-              options.canmount   = lib.mkDefault "off";
-            };
-            "nixos/root" = {
-              type               = "zfs_fs";
-              mountpoint         = lib.mkDefault "/";
-              mountOptions       = lib.mkDefault [ "noexec" ];
-              options.mountpoint = lib.mkDefault "legacy";
-              postCreateHook     = lib.mkDefault "zfs list -t snapshot -H -o name | grep -E '^rpool/nixos/root@blank$' || zfs snapshot rpool/nixos/root@blank";
-            };
-            "nixos/nix" = {
-              type               = "zfs_fs";
-              mountpoint         = lib.mkDefault "/nix";
-              mountOptions       = lib.mkDefault [ "defaults" ];
-              options.mountpoint = lib.mkDefault "legacy";
-            };
-            "nixos/logs" = {
-              type               = "zfs_fs";
-              mountpoint         = lib.mkDefault "/var/log";
-              mountOptions       = lib.mkDefault [ "noexec" ];
-              options.mountpoint = lib.mkDefault "legacy";
-            };
-          } // (lib.mkIf cfg.impermanence {
-            "nixos/persist" = {
-              type               = "zfs_fs";
-              mountpoint         = lib.mkDefault "/nix/persist";
-              mountOptions       = lib.mkDefault [ "noexec" ];
-              options.mountpoint = lib.mkDefault "legacy";
-            };
-          });
+          datasets = lib.mkMerge [
+            {
+              "nixos" = {
+                type               = "zfs_fs";
+                options.canmount   = lib.mkDefault "off";
+              };
+              "nixos/root" = {
+                type               = "zfs_fs";
+                mountpoint         = lib.mkDefault "/";
+                mountOptions       = lib.mkDefault [ "noexec" ];
+                options.mountpoint = lib.mkDefault "legacy";
+                postCreateHook     = lib.mkDefault "zfs list -t snapshot -H -o name | grep -E '^rpool/nixos/root@blank$' || zfs snapshot rpool/nixos/root@blank";
+              };
+              "nixos/nix" = {
+                type               = "zfs_fs";
+                mountpoint         = lib.mkDefault "/nix";
+                mountOptions       = lib.mkDefault [ "defaults" ];
+                options.mountpoint = lib.mkDefault "legacy";
+              };
+              "nixos/logs" = {
+                type               = "zfs_fs";
+                mountpoint         = lib.mkDefault "/var/log";
+                mountOptions       = lib.mkDefault [ "noexec" ];
+                options.mountpoint = lib.mkDefault "legacy";
+              };
+            }
+            (lib.mkIf cfg.impermanence {
+              "nixos/persist" = {
+                type               = "zfs_fs";
+                mountpoint         = lib.mkDefault "/nix/persist";
+                mountOptions       = lib.mkDefault [ "noexec" ];
+                options.mountpoint = lib.mkDefault "legacy";
+              };
+            })
+          ];
         };
 
         # --------------------------------- TmpFS ----------------------------------
@@ -168,27 +171,30 @@
 
       # ================================ FileSystem ================================
 
-      fileSystems = {
-        "/" = {
-          device        = lib.mkDefault "rpool/nixos/root";
-          fsType        = lib.mkDefault "zfs";
-        };
-        "/nix" = {
-          device        = lib.mkDefault "rpool/nixos/nix";
-          fsType        = lib.mkDefault "zfs";
-          neededForBoot = lib.mkDefault true;
-        };
-        "/var/log" = {
-          device        = lib.mkDefault "rpool/nixos/logs";
-          fsType        = lib.mkDefault "zfs";
-        };
-      } // (lib.mkIf cfg.impermanence {
-        "/nix/persist" = {
-          device        = lib.mkDefault "rpool/nixos/persist";
-          fsType        = lib.mkDefault "zfs";
-          neededForBoot = lib.mkDefault cfg.impermanence;
-        };
-      });
+      fileSystems = lib.mkMerge [
+        {
+          "/" = {
+            device        = lib.mkDefault "rpool/nixos/root";
+            fsType        = lib.mkDefault "zfs";
+          };
+          "/nix" = {
+            device        = lib.mkDefault "rpool/nixos/nix";
+            fsType        = lib.mkDefault "zfs";
+            neededForBoot = lib.mkDefault true;
+          };
+          "/var/log" = {
+            device        = lib.mkDefault "rpool/nixos/logs";
+            fsType        = lib.mkDefault "zfs";
+          };
+        }
+        (lib.mkIf cfg.impermanence {
+          "/nix/persist" = {
+            device        = lib.mkDefault "rpool/nixos/persist";
+            fsType        = lib.mkDefault "zfs";
+            neededForBoot = lib.mkDefault cfg.impermanence;
+          };
+        })
+      ];
 
       # =============================== Impermanence ===============================
 
