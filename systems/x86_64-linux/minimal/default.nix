@@ -1,5 +1,5 @@
 { namespace, ... }: {
-  "${namespace}".hardware.disk = "/dev/sda";
+  "${namespace}".hardware.devices = [ "/dev/sda" ];
   system.stateVersion = "25.05";
   networking.hostName = "minimal";
   networking.nameservers = [ "1.1.1.1" "8.8.8.8" ]; 
