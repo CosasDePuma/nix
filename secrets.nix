@@ -4,6 +4,7 @@ let
 in {
   # arkham
   "systems/x86_64-linux/arkham/secrets/acme-token.age".publicKeys         = [ nixos vm-arkham ];
+  "systems/x86_64-linux/arkham/secrets/ddclient-token.age".publicKeys     = [ nixos vm-arkham ];
   "systems/x86_64-linux/arkham/secrets/duckdns-token.age".publicKeys      = [ nixos vm-arkham ];
   "systems/x86_64-linux/arkham/secrets/smb-credentials.age".publicKeys    = [ nixos vm-arkham ];
   "systems/x86_64-linux/arkham/secrets/vaultwarden-passwd.age".publicKeys = [ nixos vm-arkham ];

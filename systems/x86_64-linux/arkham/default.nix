@@ -1,8 +1,8 @@
 { config, lib, pkgs, namespace, ... }:
 let
+  domain    = "kike.wtf";
   user      = "joker";       nas = "192.168.1.3";
   ipv4      = "192.168.1.4"; gw4 = "192.168.1.1";
-  domain    = "kike.wtf"; provider = "cloudflare";
   sshPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP9RzisL6wVQK3scDyEPEpFgrcdFYkW9LssnWlORGXof nixos";
 in rec {
   # +----------------------------------------------------------------------------+
@@ -91,7 +91,7 @@ in rec {
 
       "wg-easy" = {
         autoStart = true;                             # Automatically start the container
-        image = "ghcr.io/wg-easy/wg-easy:latest";     # Image to use
+        image = "ghcr.io/wg-easy/wg-easy:nightly";    # Image to use # FIXME: Use a 'latest' or 'production'
         hostname = "wg-easy";                         # Container hostname
         capabilities = {                              # Capabilities to add to the container
           NET_ADMIN = true;
@@ -203,6 +203,16 @@ in rec {
     domains = [ (builtins.replaceStrings ["."] [""] domain) ];
   };
 
+  services.ddclient = {
+    enable = true;                                    # Enable the ddclient service
+    domains = [ domain ];                             # Domains to update
+    interval = "1h";                                  # Update frequency
+    protocol = "cloudflare";                          # Protocol to use
+    passwordFile = "/run/agenix/ddclient-token";      # File containing provider API token
+    verbose = true;                                   # Enable verbose output
+    zone = domain;                                    # Zone to update
+  };
+
   # ====================== IDS (Intrusion Detection System) ======================
 
   services.fail2ban = {
@@ -270,6 +280,7 @@ in rec {
   age.identityPaths = builtins.map (key: "/nix/persist/.system${key.path}") (config.services.openssh.hostKeys);
   age.secrets = let mkSecret = file: { inherit file; owner = "root"; group = "root"; mode = "0400"; }; in {
     "acme-token"         = mkSecret ./secrets/acme-token.age;
+    "ddclient-token"     = mkSecret ./secrets/ddclient-token.age;
     "duckdns-token"      = mkSecret ./secrets/duckdns-token.age;
     "smb-credentials"    = mkSecret ./secrets/smb-credentials.age;
     "vaultwarden-passwd" = mkSecret ./secrets/vaultwarden-passwd.age;
@@ -486,10 +497,13 @@ in rec {
             job_name = "traefik"; static_configs = [{ targets = [
               "${config.containers."traefik".localAddress}:${builtins.elemAt (lib.strings.splitString ":" config.containers."traefik".config.services.traefik.staticConfigOptions.entryPoints."metrics".address) 1}"
             ]; }];
+          } {
+            job_name = "wg-easy"; static_configs = [{ targets = [ "vpn.${domain}:443" ]; }];
           }
         ];
       };
       users = volumeUser "prometheus";
+      networking.extraHosts = "${config.containers."traefik".localAddress} vpn.${domain}";
       networking.firewall.allowedTCPPorts = [ config.containers."prometheus".config.services.prometheus.port ];
     } // { bindMounts."/var/lib/prometheus2/data" = { hostPath = "/nix/persist/prometheus"; isReadOnly = false; }; };
 
@@ -552,7 +566,7 @@ in rec {
             keyType = "EC256";                            # Key type for SSL certificates
             storage = "${config.services.traefik.dataDir}/acme.json";
             dnsChallenge = {                              # DNS-01 challenge
-              inherit provider;                           # DNS provider
+              provider = "cloudflare";                    # DNS provider
               delayBeforeCheck = 0;                       # Delay before checking
               resolvers = [ "1.1.1.1:53" "8.8.8.8:53" ];  # DNS resolvers for DNS-01 challenges
             };

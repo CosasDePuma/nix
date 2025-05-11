@@ -1,0 +1,5 @@
+- Refractor using regular flakes
+- Gitea (arkham, e-corp)
+- Pocket-ID (?)
+- OpenLDAP
+- Frost with regular nix?
