@@ -46,12 +46,12 @@ in rec {
 
   networking.firewall = {
     enable = true;                                    # Enable firewall
-    allowedUDPPorts = [ ];                            # Disallow all UDP ports
     allowedTCPPorts = lib.lists.unique                # Allowed TCP ports
       # --- traefik ---
-      (builtins.map (p: p.hostPort) config.containers."traefik".forwardPorts) ++
+      #(builtins.map (p: p.hostPort) config.containers."traefik".forwardPorts) ++
       # --- endlessh ---
       (builtins.map (p: p.hostPort) config.containers."endlessh".forwardPorts);
+    allowedUDPPorts = [ 51820 ];                      # Allowed UDP ports
   };
 
   # ================================= Interfaces =================================
@@ -62,6 +62,71 @@ in rec {
   ];
   networking.defaultGateway = {                       # Default gateway
     interface = "eth0"; address = gw4;
+  };
+
+  # +----------------------------------------------------------------------------+
+  # |                               OCI Containers                               |
+  # +----------------------------------------------------------------------------+
+
+  # =================================== Engine ===================================
+
+  virtualisation.podman = {
+    enable = true;                                    # Enable Podman
+    dockerCompat = true;                              # Enable Docker compatibility
+    dockerSocket.enable = true;                       # Enable Docker socket
+    autoPrune = {
+      enable = true;                                  # Enable automatic pruning
+      dates = "daily";                                # Interval for pruning
+      flags = [ "--all" "--volumes" "--force" ];      # Options for pruning
+    };
+  };
+
+  # ================================= Containers =================================
+
+  virtualisation.oci-containers = {
+    backend = "podman";                               # OCI container backend
+    containers = {
+
+      # -------------------------- WireGuard Easy (VPN) --------------------------
+
+      "wg-easy" = {
+        autoStart = true;                             # Automatically start the container
+        image = "ghcr.io/wg-easy/wg-easy:latest";     # Image to use
+        hostname = "wg-easy";                         # Container hostname
+        capabilities = {                              # Capabilities to add to the container
+          NET_ADMIN = true;
+          NET_RAW = true;
+          SYS_MODULE = true;
+        };
+        environment = {
+          ENABLE_PROMETHEUS_METRICS = "true";         # Enable prometheus metrics
+          LANG = "en";                                # Language of the UI
+          WG_HOST = "vpn.${domain}";                  # Domain where the service is accessible
+          WG_DEFAULT_ADDRESS = "10.100.0.x";          # Default address for wireguard clients
+          WG_DEFAULT_DNS = "10.0.0.1";                # Default DNS for wireguard clients
+          WG_ENABLE_EXPIRES_TIME = "true";            # Enable expiration time for clients
+          WG_ENABLE_ONE_TIME_LINKS = "true";          # Enable one-time links
+          UI_ENABLE_SORT_CLIENTS = "true";            # Enable sorting clients
+          UI_TRAFFIC_STATS = "true";                  # Enable traffic stats
+          UI_CHART_TYPE = "2";                        # Chart type (0: disable, 1: line, 2: area, 3: bars)
+          WG_ALLOWED_IPS = "10.0.0.0/24,192.168.1.0/24";
+        };
+        extraOptions = [                              # Extra options for the container
+          "--sysctl=net.ipv4.ip_forward=1"            # Enable IPv4 forwarding
+          "--sysctl=net.ipv4.conf.all.src_valid_mark=1"
+        ];
+        labels = {                                    # Labels for the container
+          "traefik.enable" = "true";                  # Enable Traefik
+          "traefik.http.routers.wg-easy.rule" = "Host(`vpn.${domain}`)";
+          "traefik.http.routers.wg-easy.entrypoints" = "https";
+          "traefik.http.services.wg-easy.loadbalancer.server.port" = "51821";
+        };
+        ports = [ "0.0.0.0:51820:51820/udp" ];        # Ports to expose
+        volumes = [                                   # Volumes to mount
+          "/nix/persist/wg-easy:/etc/wireguard:rw"
+        ];
+      };
+    };
   };
 
   # +----------------------------------------------------------------------------+
@@ -94,6 +159,8 @@ in rec {
   # |                              Package Manager                               |
   # +----------------------------------------------------------------------------+
 
+  nix.settings.allowed-users = [ "@wheel" ];          # Allow only 'wheel' group to use Nix
+
   # ============================= Garbage Collection =============================
 
   nix.gc = {
@@ -124,6 +191,7 @@ in rec {
       "00 10  *  *  * root /run/current-system/sw/bin/task-backup '/nix/persist/vaultwarden/config.json'    'vaultwarden/'"
       "00 10  *  *  * root /run/current-system/sw/bin/task-backup '/nix/persist/vaultwarden/db.sqlite3'     'vaultwarden/'"
       "00 10  *  *  * root /run/current-system/sw/bin/task-backup '/nix/persist/vaultwarden/db.sqlite3-wal' 'vaultwarden/'"
+      "00 10  *  *  * root /run/current-system/sw/bin/task-backup '/nix/persist/wg-easy/wg0.conf'           'wg-easy/'"
     ];
   };
 
@@ -196,7 +264,7 @@ in rec {
   security.pam.services."sudo".sshAgentAuth = true;   # Enable sudo via SSH agent
 
   # +----------------------------------------------------------------------------+
-  # |                                  Secrets                                  |
+  # |                                  Secrets                                   |
   # +----------------------------------------------------------------------------+
 
   age.identityPaths = builtins.map (key: "/nix/persist/.system${key.path}") (config.services.openssh.hostKeys);
@@ -210,7 +278,26 @@ in rec {
   # +----------------------------------------------------------------------------+
   # |                                  Security                                  |
   # +----------------------------------------------------------------------------+
-  
+
+  # ================================= Antivirus ==================================
+
+  services.clamav = {
+    daemon.enable = true;                             # Enable the ClamAV daemon
+    scanner = {
+      enable = true;                                  # Enable the ClamAV scanner
+      interval = "*-*-* 05:00:00";                    # Scan every day at 05:00AM
+      scanDirectories = [ "/bin" "/etc" "/home" "/mnt" "/nix" "/root" "/srv" "/tmp" "/var" ];
+    };
+    fangfrisch = {
+      enable = true;                                  # Enable the Fangfrisch service
+      interval = "hourly";                            # Update the database every hour
+    };
+    updater = {
+      enable = true;                                  # Enable the ClamAV updater
+      frequency = 12;                                 # Numbers of database updates per day
+    };
+  };
+
   # ============================ Privilege Escalation ============================
 
   security.sudo-rs = {                                # Memory-safe sudo replacement
@@ -246,14 +333,23 @@ in rec {
   in (mountSMB "//${nas}/Backups" "/mnt/backups") // (mountSMB "//${nas}/Media" "/mnt/media");
 
   systemd.tmpfiles.rules = lib.flatten (
+    # --- samba shares ---
     (lib.mapAttrsToList (path: _:
       lib.optional (lib.hasPrefix "/mnt" path) 
           "d ${path} 0700 0 0 -"
     ) config.fileSystems) ++
+    # --- container volumes ---
+    (lib.mapAttrsToList (_: container:
+      builtins.map (volume:
+        lib.optional (lib.hasPrefix "/nix/persist" volume) 
+          "d ${builtins.head (lib.strings.splitString ":" volume)} 0700 9999 9999 -"
+      ) (container.volumes or [])
+    ) virtualisation.oci-containers.containers) ++
+    # --- vms bind mounts ---
     (lib.mapAttrsToList (_: container:
       lib.mapAttrsToList (_: mount:
         lib.optional (lib.hasPrefix "/nix/persist" mount.hostPath) 
-          "d ${mount.hostPath} 0700 9999 0 -"
+          "d ${mount.hostPath} 0700 9999 9999 -"
       ) (container.bindMounts or {})
     ) config.containers));
 
@@ -267,7 +363,9 @@ in rec {
 
   # =================================== Groups ===================================
 
-  users.groups."users" = {};                          # Group to organize regular users
+  users.groups."users"     = {};                      # Group to organize regular users
+  users.groups."podman"    = { gid = 999; };          # Group to access OCI containers
+  users.groups."container" = { gid = 9999; };         # Group to organize container users
 
   # =================================== Users ====================================
 
@@ -287,7 +385,7 @@ in rec {
     "container" = {
       createHome = false;                             # Disable home directory creation
       description = "Container users";                # Description
-      group = "nogroup";                              # Disable groups
+      group = "container";                            # Container group
       home = "/var/empty";                            # Disable home directory
       isNormalUser = true;                            # System user account
       password = null;                                # Disable password authentication
@@ -320,9 +418,39 @@ in rec {
       config = { system.stateVersion = config.system.stateVersion; } // cfg;
     };
     volumeUser = user: {                              # Force specific UID for user inside containers
-      "${user}" = { uid = lib.mkForce 9999; isSystemUser = lib.mkForce true; shell = "/run/current-system/sw/bin/nologin"; };
+      users."${user}" = {
+        uid = lib.mkForce config.users.users."container".uid; group = lib.mkForce "container";
+        isSystemUser = lib.mkForce true; shell = "/run/current-system/sw/bin/nologin";
+      };
+      groups."container" = { gid = lib.mkForce config.users.groups."container".gid; };
     };
   in {
+    # ---------------------------- Metrics Dashboard -----------------------------
+
+    "dnsmasq" = mkVM "10.0.0.1" {
+      services.dnsmasq = {
+        enable = true;                                # Enable the dnsmasq service
+        resolveLocalQueries = false;                  # Disable local DNS resolution
+        settings = {
+          address = [ "/${domain}/10.0.0.10" ];       # Local DNS resolution
+          bogus-priv = true;                          # Ignore private IP addresses
+          bind-interfaces = true;                     # Bind to the specified interfaces
+          cache-size = 1000;                          # Cache size
+          domain-needed = true;                       # Ignore non-domain queries
+          interface = [ "lo" "eth0" ];                # Interfaces to listen on
+          min-cache-ttl = 300;                        # Minimum cache TTL
+          no-resolv = true;                           # Disable DNS resolution using /etc/resolv.conf
+          port = 53;                                  # Port to listen on
+          rebind-domain-ok = "|lan";                  # Allow DNS rebinding for local domains
+          server = [ "1.1.1.1" "8.8.8.8" ];           # DNS servers to use
+          stop-dns-rebind = true;                     # Disable DNS rebinding
+          strict-order = true;                        # Use the specified DNS servers in order
+        };
+      };
+      networking.firewall.allowedTCPPorts = config.containers."dnsmasq".config.services.dnsmasq.settings.port;
+      networking.firewall.allowedUDPPorts = config.containers."dnsmasq".config.services.dnsmasq.settings.port;
+    };
+
     # ---------------------------- Metrics Dashboard -----------------------------
 
     "grafana" = mkVM "10.0.0.12" {
@@ -336,7 +464,7 @@ in rec {
           };
         };
       };
-      users.users = volumeUser "grafana";
+      users = volumeUser "grafana";
       networking.firewall.allowedTCPPorts = [ config.containers."grafana".config.services.grafana.settings.server.http_port ];
     } // { bindMounts."${config.containers."grafana".config.services.grafana.dataDir}" = { hostPath = "/nix/persist/grafana"; isReadOnly = false; }; };
 
@@ -361,7 +489,7 @@ in rec {
           }
         ];
       };
-      users.users = volumeUser "prometheus";
+      users = volumeUser "prometheus";
       networking.firewall.allowedTCPPorts = [ config.containers."prometheus".config.services.prometheus.port ];
     } // { bindMounts."/var/lib/prometheus2/data" = { hostPath = "/nix/persist/prometheus"; isReadOnly = false; }; };
 
@@ -373,7 +501,7 @@ in rec {
         openFirewall = true;
         settings.server.port = 8080;
       };
-      users.users = volumeUser "komga";
+      users = volumeUser "komga";
     } // { bindMounts = {
       "/srv" = { hostPath = "/mnt/media"; isReadOnly = true; };
       "${config.containers."komga".config.services.komga.stateDir}" = { hostPath = "/nix/persist/komga"; isReadOnly = false; };
@@ -396,7 +524,7 @@ in rec {
         };
         environmentFile = "/run/.secrets/vaultwarden-passwd";
       };
-      users.users = volumeUser "vaultwarden";
+      users = volumeUser "vaultwarden";
       networking.firewall.allowedTCPPorts = [ config.containers."vaultwarden".config.services.vaultwarden.config.ROCKET_PORT ];
     } // { bindMounts = {
       "/run/.secrets" = { hostPath = "/run/agenix"; isReadOnly = true; };
@@ -454,6 +582,11 @@ in rec {
             addRoutersLabels = true;                      # Add routers labels
           };
           ping.entryPoint = "https";                      # Entrypoint for ping
+          providers.docker = {                            # Enable Docker provider
+            endpoint = "unix:///var/run/docker.sock";   # Docker socket
+            exposedByDefault = false;                   # Disable automatic exposure of containers
+            watch = true;                               # Watch for changes in Docker containers
+          };
         };
         dynamicConfigOptions = {
           http = {
@@ -465,22 +598,22 @@ in rec {
               url = "http://${config.containers."vhost".localAddress}:${toString (builtins.head config.containers."vhost".config.services.nginx.defaultListen).port}"; }];
 
             # --- books subdomain ---
-            routers."komga"  = { rule = "Host(`books.${domain}`)"; service = "komga"; };
+            routers."komga"  = { rule = "Host(`books.${domain}`)"; service = "komga"; middlewares = [ "default@file" ]; };
             services."komga".loadBalancer.servers = [{
               url = "http://${config.containers."komga".localAddress}:${toString config.containers."komga".config.services.komga.settings.server.port}"; }];
 
             # --- metrics subdomain ---
-            routers."prometheus"  = { rule = "Host(`metrics.${domain}`)"; service = "prometheus"; };
+            routers."prometheus"  = { rule = "Host(`metrics.${domain}`)"; service = "prometheus"; middlewares = [ "default@file" ]; };
             services."prometheus".loadBalancer.servers = [{
               url = "http://${config.containers."prometheus".localAddress}:${toString config.containers."prometheus".config.services.prometheus.port}"; }];
 
             # --- monitor subdomain ---
-            routers."grafana"  = { rule = "Host(`monitor.${domain}`)"; service = "grafana"; };
+            routers."grafana"  = { rule = "Host(`monitor.${domain}`)"; service = "grafana"; middlewares = [ "default@file" ]; };
             services."grafana".loadBalancer.servers = [{
               url = "http://${config.containers."grafana".localAddress}:${toString config.containers."grafana".config.services.grafana.settings.server.http_port}"; }];
 
             # --- vault subdomain ---
-            routers."vaultwarden"  = { rule = "Host(`vault.${domain}`)"; service = "vaultwarden"; };
+            routers."vaultwarden"  = { rule = "Host(`vault.${domain}`)"; service = "vaultwarden"; middlewares = [ "default@file" ]; };
             services."vaultwarden".loadBalancer.servers = [{
               url = "http://${config.containers."vaultwarden".localAddress}:${toString config.containers."vaultwarden".config.services.vaultwarden.config.ROCKET_PORT}"; }];
 
@@ -563,21 +696,21 @@ in rec {
           };
         };
       };
-      users.users = volumeUser "traefik";
+      users = lib.mkMerge [ (volumeUser "traefik") { users."traefik".extraGroups = [ "podman" ]; groups."podman" = { gid = lib.mkForce config.users.groups."podman".gid; }; } ];
       networking.firewall.allowedTCPPorts = [8080] ++
         builtins.map (e: lib.strings.toInt (builtins.elemAt (lib.strings.splitString ":" e.address) 1))
           (builtins.attrValues config.containers."traefik".config.services.traefik.staticConfigOptions.entryPoints);
     } // {
-      forwardPorts = [{ hostPort = 443; containerPort = lib.strings.toInt (builtins.elemAt (lib.strings.splitString ":" config.containers."traefik".config.services.traefik.staticConfigOptions.entryPoints."https".address) 1); }];
       bindMounts = {
         "/run/.secrets" = { hostPath = "/run/agenix"; isReadOnly = true; };
         "/var/lib/traefik" = { hostPath = "/nix/persist/traefik"; isReadOnly = false; };
+        "/var/run/docker.sock" = { hostPath = "/run/podman/podman.sock"; isReadOnly = true; };
       };
     };
 
     # ------------------------ Tarpit: HTTP (Web Server) -------------------------
 
-    "vhost" = mkVM "10.0.0.2" {
+    "vhost" = mkVM "10.0.0.3" {
       services.nginx = {
         enable = true;
         defaultListen = [{ addr = "0.0.0.0"; port = 80; }];
@@ -588,7 +721,7 @@ in rec {
             locations = {
               "/" = { root = ./metafiles; tryFiles = "$uri @redirect"; };
               "@30x" = { return = "200 ''"; extraConfig = "default_type '';"; };
-              "@redirect".return = "301 https://www.youtube.com/watch?v=dQw4w9WgXc"; };
+              "@redirect".return = "301 https://www.youtube.com/watch?v=dQw4w9WgXcQ"; };
           };
         };
       };
@@ -597,7 +730,7 @@ in rec {
 
     # ------------------------ Tarpit: SSH (Secure Shell) ------------------------
 
-    "endlessh" = mkVM "10.0.0.1" {
+    "endlessh" = mkVM "10.0.0.2" {
       services.endlessh-go = {
         enable = true;                                # Enable the endlessh service
         listenAddress = "0.0.0.0"; port = 22;         # Address to listen on (ssh)

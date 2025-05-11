@@ -59,7 +59,7 @@ _: {
       (organize "Development"             [ "orbstack" "outerbase-studio" "visual-studio-code" "whisky" "warp" ])
       (organize "Entertainment"           [ "spotify" "steam" ])
       (organize "HomeLab"                 [ "bitwarden" ])
-      (organize "Utilities"               [ "balenaetcher" "brave-browser" "flameshot" "the-unarchiver" "vlc" "webtorrent" ])
+      (organize "Utilities"               [ "balenaetcher" "brave-browser" "flameshot" "font-fira-code-nerd-font" "the-unarchiver" "vlc" "webtorrent" ])
     ];
   };
 

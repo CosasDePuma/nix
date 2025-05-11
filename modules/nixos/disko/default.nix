@@ -216,7 +216,9 @@
         "/nix/persist/.system" = {
           enable = lib.mkDefault true;
           hideMounts = lib.mkDefault true;
-          directories = [ "/var/lib/nixos" ];
+          directories = [
+            "/var/lib/nixos"
+          ];
           files = [
             "/etc/machine-id"
             "/etc/ssh/ssh_host_rsa_key"
