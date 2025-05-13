@@ -197,12 +197,6 @@ in rec {
 
   # ============================= DDNS (Dynamic DNS) =============================
 
-  services.duckdns = {
-    enable = true;                                    # Enable the DuckDNS service
-    tokenFile = "/run/agenix/duckdns-token";          # DuckDNS token (secret)
-    domains = [ (builtins.replaceStrings ["."] [""] domain) ];
-  };
-
   services.ddclient = {
     enable = true;                                    # Enable the ddclient service
     domains = [ domain ];                             # Domains to update
@@ -281,7 +275,6 @@ in rec {
   age.secrets = let mkSecret = file: { inherit file; owner = "root"; group = "root"; mode = "0400"; }; in {
     "acme-token"         = mkSecret ./secrets/acme-token.age;
     "ddclient-token"     = mkSecret ./secrets/ddclient-token.age;
-    "duckdns-token"      = mkSecret ./secrets/duckdns-token.age;
     "smb-credentials"    = mkSecret ./secrets/smb-credentials.age;
     "vaultwarden-passwd" = mkSecret ./secrets/vaultwarden-passwd.age;
   };
