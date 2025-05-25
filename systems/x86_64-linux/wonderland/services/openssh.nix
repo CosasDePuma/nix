@@ -1,14 +1,39 @@
-{ config, lib, ... }: {
+_: { config, lib, ... }: {
+
+  # =============================== Agent ================================
+    
+  security.pam = {
+    sshAgentAuth.enable = true;                     # Enable SSH agent authentication
+    services."sudo".sshAgentAuth = true;            # Enable sudo via SSH agent
+  };
+
+  # ============================== Firewall ==============================
+    
+  networking.firewall.allowedTCPPorts = builtins.map (addr: addr.port)
+    config.services.openssh.listenAddresses;
+
+  # ============================== Service ===============================
+
   services.openssh = {
     enable = true;                                  # Enable the OpenSSH server
-    allowSFTP = false;                              # Disable SFTP
+    allowSFTP = true;                               # Enable SCP & SFTP
     authorizedKeysInHomedir = false;                # Disable authorized keys in home directories
-    banner = builtins.readFile ./banner.txt;        # Use a custom banner
     listenAddresses = [{                            # Listen only on IPv4 and custom port
       addr = "0.0.0.0"; port = 64022; }];
     ports = [];                                     # Disable default port 22
     startWhenNeeded = true;                         # Start the service when a connection is made
-
+    banner = ''
+      ==============================================================
+      |                   AUTHORIZED ACCESS ONLY                   |
+      ==============================================================
+      |                                                            |
+      |    WARNING: All connections are monitored and recorded.    |
+      |  Disconnect IMMEDIATELY if you are not an authorized user! |
+      |                                                            |
+      |       *** Unauthorized access will be prosecuted ***       |
+      |                                                            |
+      ==============================================================
+    '';
     settings = {
       AuthorizedPrincipalsFile = "none";            # Disable authorized principals file
       ChallengeResponseAuthentication = false;      # Disable challenge-response authentication
