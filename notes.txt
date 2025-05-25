@@ -1,5 +1,7 @@
-- Refractor using regular flakes
+- Refractor using regular flakes ✅
+- Nix flake checks
 - Gitea (arkham, e-corp)
 - Pocket-ID (?)
 - OpenLDAP
 - Frost with regular nix?
+- Impermanence (btrfs or zfs)

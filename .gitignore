@@ -3,3 +3,10 @@
 
 # Direnv
 /**/.direnv
+
+# Backups
+/**/*~
+/**/.old/
+
+# MacOS
+/**/.DS_Store
