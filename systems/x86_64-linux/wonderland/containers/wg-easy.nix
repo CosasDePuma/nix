@@ -1,4 +1,4 @@
-{ domain, ... }: { config, ... }: {
+{ domain, safeDir, ... }: { config, ... }: {
   virtualisation.oci-containers.containers."wg-easy" = {
     autoStart = true;                             # Automatically start the container
     image = "ghcr.io/wg-easy/wg-easy:nightly";    # Image to use # FIXME(safety): Use a 'latest' or 'production'
@@ -26,12 +26,11 @@
     labels = {                                    # Labels for the container
       "traefik.enable" = "true";                  # Enable Traefik
       "traefik.http.routers.wg-easy.rule" = "Host(`vpn.${domain}`)";
-      "traefik.http.routers.wg-easy.entrypoints" = "https";
       "traefik.http.services.wg-easy.loadbalancer.server.port" = "51821";
     };
     ports = [ "0.0.0.0:51820:51820/udp" ];        # Ports to expose
     volumes = [                                   # Volumes to mount
-      "/persist/wg-easy:/etc/wireguard:rw"
+      "${safeDir}/wg-easy:/etc/wireguard:rw"
     ];
   };
 }

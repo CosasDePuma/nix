@@ -1,6 +1,7 @@
 { lib, ... }: let options = {
   dnsProvider = "cloudflare";
   domain      = "kike.wtf";
+  safeDir     = "/persist";
 }; in {
   imports = lib.pipe (lib.fileset.fileFilter (file: lib.strings.hasSuffix ".nix" file.name) ./.) [
     lib.fileset.toList

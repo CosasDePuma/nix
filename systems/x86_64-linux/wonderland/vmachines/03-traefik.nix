@@ -1,13 +1,13 @@
-{ dnsProvider, domain, ... }: { config, lib, ... }: {
+{ dnsProvider, domain, safeDir, ... }: { config, lib, ... }: {
   containers."traefik" = {
     autoStart = true;                                 # Automatically start the container
     ephemeral = true;                                 # Ephemeral container, will not persist data
     privateNetwork = true;                            # Use a private network
-    localAddress = "10.100.0.1";                      # Local address for the container
+    localAddress = "10.100.0.3";                      # Local address for the container
     hostAddress = (builtins.head config.networking.interfaces.${builtins.head (builtins.attrNames config.networking.interfaces)}.ipv4.addresses).address;
     bindMounts = {                                    # Bind host folders inside the container
       "/run/.secrets"        = { isReadOnly = true;  hostPath = "/run/agenix"; };
-      "/var/lib/traefik"     = { isReadOnly = false; hostPath = "/persist/traefik"; };
+      "/var/lib/traefik"     = { isReadOnly = false; hostPath = "${safeDir}/traefik"; };
       "/var/run/docker.sock" = { isReadOnly = true;  hostPath = "/run/podman/podman.sock"; };
     };
     config = {
@@ -15,13 +15,12 @@
       # ============================= Config =============================
 
       system.stateVersion = config.system.stateVersion;
-      networking.hostName = "traefik";                # Hostname for the container
       users = {
         groups = {                                    # Mimic groups from the host system
           "podman" = config.users.groups."podman";
           "vmachines" = config.users.groups."vmachines";
         };
-        users.traefik = {
+        users."traefik" = {
           inherit (config.users.users."vmachines") uid;
           group = lib.mkForce "vmachines";
           isSystemUser = true;
@@ -86,7 +85,7 @@
         dynamicConfigOptions = {
           http.middlewares = {
             # --- chains ---
-            default.chain.middlewares  = [ "compression@file" "error-pages@file" "jokes@file" ]; #FIXME: "security@file" ];
+            default.chain.middlewares  = [ "compression@file" "jokes@file" "security@file" ]; # TODO(improvement): Default error pages "error-pages@file" 
             security.chain.middlewares = [ "security-headers@file" "ssl-headers@file" "rate-limiting@file" ];
 
             # --- compression ---
@@ -96,7 +95,7 @@
             };
 
             # --- error pages ---
-            error-pages.errors = {
+            error-pages.errors = {  # TODO(improvement): Default error pages "error-pages@file" 
               status = "403-404";
               service = "vhost";
               query = "{url}";
@@ -160,12 +159,12 @@
           };
         };
       };
-      networking.firewall.allowedTCPPorts = [8080] ++
-        builtins.map (e: lib.strings.toInt (builtins.elemAt (lib.strings.splitString ":" e.address) 1))
-          (builtins.attrValues config.containers."traefik".config.services.traefik.staticConfigOptions.entryPoints);
+      networking = {
+        hostName = "traefik";                        # Hostname for the container
+        firewall.allowedTCPPorts = [8080] ++         # Open the firewall
+          builtins.map (e: lib.strings.toInt (builtins.elemAt (lib.strings.splitString ":" e.address) 1))
+            (builtins.attrValues config.containers."traefik".config.services.traefik.staticConfigOptions.entryPoints);
+      };
     };
   };
-
-  networking.firewall.allowedTCPPorts = builtins.map (e: lib.strings.toInt (builtins.elemAt (lib.strings.splitString ":" e.address) 1))
-    (builtins.attrValues config.containers."traefik".config.services.traefik.staticConfigOptions.entryPoints);
 }
