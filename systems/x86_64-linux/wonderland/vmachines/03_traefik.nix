@@ -8,8 +8,9 @@
     bindMounts = {                                    # Bind host folders inside the container
       "/run/.secrets"        = { isReadOnly = true;  hostPath = "/run/agenix"; };
       "/var/lib/traefik"     = { isReadOnly = false; hostPath = "${safeDir}/traefik"; };
-      "/var/run/docker.sock" = { isReadOnly = true;  hostPath = "/run/podman/podman.sock"; };
-    };
+    } // (lib.mkIf (config.virtualisation.podman.enable || config.virtualisation.containers.enable) {
+      "/var/run/docker.sock" = { isReadOnly = true;  hostPath = "/run/${config.virtualisation.oci-containers.backend}/${config.virtualisation.oci-containers.backend}.sock"; };
+    });
     config = {
 
       # ============================= Config =============================

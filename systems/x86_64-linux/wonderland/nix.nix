@@ -23,6 +23,6 @@ _: _: {
       operation = "switch";                  # Switches to the new system immediately
       persistent = true;                     # Ensures that auto-upgrades are executed
     }; 
-    stateVersion = "24.05";                  # System state version for compatibility
+    stateVersion = "25.05";                  # System state version for compatibility
   };
 }
