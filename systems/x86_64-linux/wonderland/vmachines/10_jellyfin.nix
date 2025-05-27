@@ -7,14 +7,15 @@
       localAddress = "10.100.0.10";                     # Local address for the container
       hostAddress = (builtins.head config.networking.interfaces.${builtins.head (builtins.attrNames config.networking.interfaces)}.ipv4.addresses).address;
       bindMounts = {                                    # Bind host folders inside the container
-       "/srv" = { isReadOnly = true; hostPath = "/mnt/media"; };
-      "${config.containers."jellyfin".config.services.jellyfin.configDir}" = { isReadOnly = false; hostPath = "${safeDir}/jellyfin"; };
+        "/srv" = { isReadOnly = false; hostPath = "/mnt/media"; };
+        "${config.containers."jellyfin".config.services.jellyfin.dataDir}" = { isReadOnly = false; hostPath = "${safeDir}/jellyfin"; };
       };
       config = {
 
         # ============================= Config =============================
 
         system.stateVersion = config.system.stateVersion;
+        #i18n.defaultLocale = "es_ES.UTF-8";
         users = {
           groups."vmachines" = config.users.groups."vmachines";
           users."jellyfin" = {
@@ -24,17 +25,6 @@
             shell = "/run/current-system/sw/bin/nologin";
           };
         };
-        nixpkgs.overlays = [
-          (_: prev: { jellyfin-web = prev.jellyfin-web.overrideAttrs (_: _: {
-            installPhase = ''
-              runHook preInstall
-              sed -i "s#</head>#<script src=\"configurationpage?name=skip-intro-button.js\"></script></head>#" dist/index.html
-              mkdir -p $out/share
-              cp -a dist $out/share/jellyfin-web
-              runHook postInstall
-            '';
-          }); })
-        ];
         environment.systemPackages = with pkgs; [
           jellyfin jellyfin-web jellyfin-ffmpeg
         ];

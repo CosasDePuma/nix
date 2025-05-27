@@ -53,7 +53,7 @@ in {
         # --- tmpfs for /tmp ---
         "/tmp" = {
           fsType = "tmpfs";
-          mountOptions = [ "noexec" "size=200M" ];
+          mountOptions = [ "noexec" "size=1G" ];
         };
       };
     };

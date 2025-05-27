@@ -5,12 +5,14 @@
     privateNetwork = true;                            # Use a private network
     localAddress = "10.100.0.3";                      # Local address for the container
     hostAddress = (builtins.head config.networking.interfaces.${builtins.head (builtins.attrNames config.networking.interfaces)}.ipv4.addresses).address;
-    bindMounts = {                                    # Bind host folders inside the container
-      "/run/.secrets"        = { isReadOnly = true;  hostPath = "/run/agenix"; };
-      "/var/lib/traefik"     = { isReadOnly = false; hostPath = "${safeDir}/traefik"; };
-    } // (lib.mkIf (config.virtualisation.podman.enable || config.virtualisation.containers.enable) {
+    bindMounts = lib.mkMerge [{                       # Bind host folders inside the container
+        "/run/.secrets"        = { isReadOnly = true;  hostPath = "/run/agenix"; };
+        "/var/lib/traefik"     = { isReadOnly = false; hostPath = "${safeDir}/traefik"; };
+      }
+      (lib.mkIf (config.virtualisation.podman.enable || config.virtualisation.containers.enable) {
       "/var/run/docker.sock" = { isReadOnly = true;  hostPath = "/run/${config.virtualisation.oci-containers.backend}/${config.virtualisation.oci-containers.backend}.sock"; };
-    });
+      })
+    ];
     config = {
 
       # ============================= Config =============================
