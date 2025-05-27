@@ -15,7 +15,7 @@
         # ============================= Config =============================
 
         system.stateVersion = config.system.stateVersion;
-        #i18n.defaultLocale = "es_ES.UTF-8";
+        i18n.defaultLocale = "es_ES.UTF-8";
         users = {
           groups."vmachines" = config.users.groups."vmachines";
           users."jellyfin" = {
