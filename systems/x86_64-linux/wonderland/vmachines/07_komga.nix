@@ -4,7 +4,7 @@
       autoStart = true;                                 # Automatically start the container
       ephemeral = true;                                 # Ephemeral container, will not persist data
       privateNetwork = true;                            # Use a private network
-      localAddress = "10.100.0.6";                      # Local address for the container
+      localAddress = "10.100.0.7";                      # Local address for the container
       hostAddress = (builtins.head config.networking.interfaces.${builtins.head (builtins.attrNames config.networking.interfaces)}.ipv4.addresses).address;
       bindMounts = {                                    # Bind host folders inside the container
        "/srv" = { isReadOnly = true; hostPath = "/mnt/media"; };
