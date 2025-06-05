@@ -31,6 +31,11 @@
           extraGroups = [ "podman" ];
         };
       };
+      systemd.services."traefik" = {
+        serviceConfig = {
+          LimitNPROC = lib.mkForce 4096;
+        };
+      };
       services.traefik = {
         enable = true;                                # Enable the Traefik service
         environmentFiles = [ "/run/.secrets/acme-token" ];
