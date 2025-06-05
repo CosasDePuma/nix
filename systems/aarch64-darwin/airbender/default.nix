@@ -69,6 +69,7 @@
     git                                                # Version control system
     lsd                                                # Modern replacement for `ls`
     starship                                           # Cross-shell prompt
+    stow                                               # Dotfiles manager
     zoxide                                             # Modern replacement for `cd`
   ];
 
@@ -100,7 +101,6 @@
       (organize "Development"             [ "orbstack" "outerbase-studio" "visual-studio-code" "whisky" "warp" ])
       (organize "Entertainment"           [ "spotify" "steam" ])
       (organize "HomeLab"                 [ "bitwarden" ])
-      (organize "System"                  [ "font-fira-code-nerd-font" ])
       (organize "Utilities"               [ "balenaetcher" "brave-browser" "flameshot" "the-unarchiver" "vlc" "webtorrent" ])
     ];
   };
@@ -115,6 +115,8 @@
   #   - Show hard drives on desktop.
   #   - Show mounted servers on desktop.
   #   - Show removable media on desktop.
+  # - Dock:
+  #   - Auto-hide.
   # - Finder:
   #   - Sort folders first.
   #   - Show all file extensions.
@@ -125,25 +127,29 @@
   #   - Enable quit Finder.
   #   - Set the column view as default.
 
-  system.defaults.finder = {
-    # Desktop
-    CreateDesktop = false;                             # Don't show desktop icons
-    ShowExternalHardDrivesOnDesktop = true;            # Show external hard drives on desktop
-    ShowHardDrivesOnDesktop = true;                    # Show hard drives on desktop
-    ShowMountedServersOnDesktop = true;                # Show mounted servers on desktop
-    ShowRemovableMediaOnDesktop = true;                # Show removable media on desktop
+  system.defaults = {
+    dock = {
+      autohide = true;                                 # Auto-hide the Dock
+    };
+    finder = {
+      # Desktop
+      CreateDesktop = false;                           # Don't show desktop icons
+      ShowExternalHardDrivesOnDesktop = true;          # Show external hard drives on desktop
+      ShowHardDrivesOnDesktop = true;                  # Show hard drives on desktop
+      ShowMountedServersOnDesktop = true;              # Show mounted servers on desktop
+      ShowRemovableMediaOnDesktop = true;              # Show removable media on desktop
 
-    # Finder
-    _FXSortFoldersFirst = true;                        # Sort folders first
-    AppleShowAllExtensions = true;                     # Show all file extensions
-    AppleShowAllFiles = true;                          # Show hidden files
-    FXPreferredViewStyle = "clmv";                     # Column view
-    NewWindowTarget = "Home";                          # Show home folder when opening new Finder window
-    QuitMenuItem = true;                               # Enable quit menu item
-    ShowPathbar = true;                                # Show path breadcrumbs
-    ShowStatusBar = true;                              # Show status bar at bottom of Finder
+      # Finder
+      _FXSortFoldersFirst = true;                      # Sort folders first
+      AppleShowAllExtensions = true;                   # Show all file extensions
+      AppleShowAllFiles = true;                        # Show hidden files
+      FXPreferredViewStyle = "clmv";                   # Column view
+      NewWindowTarget = "Home";                        # Show home folder when opening new Finder window
+      QuitMenuItem = true;                             # Enable quit menu item
+      ShowPathbar = true;                              # Show path breadcrumbs
+      ShowStatusBar = true;                            # Show status bar at bottom of Finder
+    };
   };
-
 
   # +-----------------------------------------------------------------------------+
   # |                                   System                                    |
