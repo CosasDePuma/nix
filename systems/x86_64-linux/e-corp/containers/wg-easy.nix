@@ -3,6 +3,7 @@
     autoStart = true;                             # Automatically start the container
     image = "ghcr.io/wg-easy/wg-easy:nightly";    # Image to use # FIXME(safety): Use a 'latest' or 'production'
     hostname = "wg-easy";                         # Container hostname
+    networks = [ "public" ];                      # Networks to connect to
     capabilities = {                              # Capabilities to add to the container
       NET_ADMIN = true;
       NET_RAW = true;

@@ -1,4 +1,5 @@
 { pkgs, inputs, system, ... }: with pkgs; mkShell {
+  name = "nixos";
   NIX_CONFIG = "experimental-features = nix-command flakes";
   buildInputs = [
     nh                                                # yet another nix cli wrapper

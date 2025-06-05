@@ -81,6 +81,7 @@
           ping.entryPoint = "https";                  # Entrypoint for ping
           providers.docker = lib.mkIf (config.virtualisation.podman.enable || config.virtualisation.containers.enable) {
             endpoint = "unix:///var/run/docker.sock"; # Docker socket
+            network = "public";                       # Network to use
             exposedByDefault = false;                 # Disable automatic exposure of containers
             watch = true;                             # Watch for changes in Docker containers
           };

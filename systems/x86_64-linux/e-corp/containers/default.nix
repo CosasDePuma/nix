@@ -1,4 +1,4 @@
-_: _: {
+_: { config, pkgs, ... }: {
   virtualisation = {
     oci-containers.backend = "podman";               # Use Podman as the backend for OCI containers
     podman = {
@@ -12,4 +12,12 @@ _: _: {
       };
     };
   };
+
+  system.activationScripts."oci-containers-networks".text = let 
+    backend = config.virtualisation.oci-containers.backend;
+  in ''
+    #!/bin/sh
+    # Create the OCI containers networks
+    ${pkgs.${backend}}/bin/${backend} network create --subnet=172.20.0.0/24 public || :
+  '';
 }
