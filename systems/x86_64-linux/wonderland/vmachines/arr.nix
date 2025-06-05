@@ -1,4 +1,4 @@
-{ domain, safeDir, ... }: { config, lib, pkgs, ... }: {
+{ domain, safeDir, ... }: { config, ... }: {
   containers = {
     "arr" = {
       autoStart = true;                                 # Automatically start the container

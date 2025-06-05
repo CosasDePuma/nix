@@ -1,4 +1,4 @@
-{ domain, safeDir, ... }: { config, lib, pkgs, ... }: {
+{ domain, safeDir, ... }: { config, ... }: {
   containers = {
     "torrent" = {
       autoStart = true;                                 # Automatically start the container

@@ -1,4 +1,5 @@
 { pkgs, inputs, system, ... }: with pkgs; mkShell {
+  name = "nixos";
   NIX_CONFIG = "experimental-features = flakes nix-command pipe-operators";
   buildInputs = [
     deadnix                                           # dead code scanner

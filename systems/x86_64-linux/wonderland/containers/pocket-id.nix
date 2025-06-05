@@ -3,6 +3,7 @@
     autoStart = true;                             # Automatically start the container
     image = "ghcr.io/pocket-id/pocket-id:latest"; # Image to use
     hostname = "pocket-id";                       # Container hostname
+    networks = [ "public" ];                      # Networks to connect to
     environment = {
       APP_URL = "https://auth.${domain}";         # Public URL for the app
       HOST = "0.0.0.0";                           # Address to listen on
