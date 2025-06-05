@@ -32,23 +32,10 @@ in {
         content.partitions."root" = {
           name = "NIXOS";
           size = "100%";
-          content.type = "btrfs";
-          content.extraArgs = [ "-L" "NIXOS" "-f" ];
-
-          content.subvolumes."@root" = {
-            mountpoint = "/";
-            mountOptions = [ "noatime" "noexec" ];
-          };
-
-          content.subvolumes."@nix" = {
-            mountpoint = "/nix";
-            mountOptions = [ "compress=zstd" "noatime" ];
-          };
-
-          content.subvolumes."@persistent" = {
-            mountpoint = safeDir;
-            mountOptions = [ "compress=zstd" "noatime" "noexec" ];
-          };
+          content.type = "filesystem";
+          content.format = "ext4";
+          content.mountpoint = "/";
+          content.extraArgs = [ "-L" "NIXOS" ];
         };
       };
 
