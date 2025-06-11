@@ -3,6 +3,7 @@
 <br/><br/>
 
 [![Built with Nix](https://img.shields.io/badge/Built%20with-Nix%20Flakes-5277C3?style=for-the-badge&logo=nixos&logoColor=white&labelColor=5e81ac&color=d8dee9)](https://nixos.org/)
+[![DeepWiki](https://img.shields.io/badge/DeepWiki-Explained%20Repo-4F4FFF?style=for-the-badge&logo=wikibooks&logoColor=white&labelColor=5e81ac&color=d8dee9)](https://deepwiki.com/CosasDePuma/nix)
 
 </div>
 
