@@ -1,15 +1,21 @@
 {
-  pkgs ? import <nixpkgs> { },
+  pkgs,
+  inputs,
+  system,
   ...
 }:
-pkgs.mkShell {
+with pkgs;
+mkShell {
   name = "nixos";
+  NIX_CONFIG = "experimental-features = flakes nix-command pipe-operators";
+  buildInputs = [
+    deadnix # dead code scanner
+    nh # yet another nix cli wrapper
+    nixos-anywhere # nixos installation over ssh
+    nixos-rebuild # nixos configuration rebuild
+    statix # nixos configuration linter
 
-  buildInputs = with pkgs; [
-    # --- nix checkers
-    deadnix
-    statix
-    # --- nix formatters
-    nixfmt-tree
+    inputs.agenix.packages.${system}.default # secret management
+    inputs.darwin.packages.${system}.default # darwin configuration rebuild
   ];
 }

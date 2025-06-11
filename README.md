@@ -2,15 +2,13 @@
 <img src=".github/logo.png" alt="nix" />
 <br/><br/>
 
-# ❄️ My own IaC (Infrastructure as Code) using Nix ❄️
-
-[![Built with Nix](https://img.shields.io/badge/Built%20with-Nix-5277C3?style=for-the-badge&logo=nixos&logoColor=white)](https://nixos.org/)
+[![Built with Nix](https://img.shields.io/badge/Built%20with-Nix%20Flakes-5277C3?style=for-the-badge&logo=nixos&logoColor=white&labelColor=5e81ac&color=d8dee9)](https://nixos.org/)
 
 </div>
 
 ## ✨ About This Repo
 
-This repository contains my personal Infrastructure as Code (IaC) configurations using [Nix](https://nixos.org/). It helps me manage, reproduce, and share my development environments and system setups with ease.
+This repository contains my personal Infrastructure as Code (IaC) configurations using [Nix](https://nixos.org/) [Flakes](https://nixos.wiki/wiki/Flakes). It helps me manage, reproduce, and share my development environments and system setups with ease.
 
 
 ## 🦄 Why Nix?

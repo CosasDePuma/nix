@@ -2,24 +2,21 @@
   description = "❄️ My new flake!";
 
   outputs =
-    { self, ... }@inputs:
+    inputs:
     let
       systems = [
         "aarch64-darwin"
         "x86_64-linux"
       ];
       lib' = import ./lib.nix (inputs // { inherit (inputs.nixpkgs) lib; });
-      inherit (lib') import' forEachSystem;
+      inherit (lib') forEachSystem;
     in
     {
       # +------------- development shells -------------+
 
-      devShells = forEachSystem systems (
-        { pkgs, system }@args:
-        {
-          default = import ./shells/default.nix args;
-        }
-      );
+      devShells = forEachSystem systems (args: {
+        default = import ./shells/default.nix args;
+      });
 
       # +----------------- formatter ------------------+
 

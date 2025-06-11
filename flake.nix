@@ -4,21 +4,33 @@
   outputs =
     { self, ... }@inputs:
     let
+      inherit (inputs.nixpkgs) lib;
+      lib' = import ./lib.nix (inputs // lib);
+      inherit (lib') forEachSystem;
       systems = [
         "aarch64-darwin"
         "x86_64-linux"
       ];
-      lib' = import ./lib.nix (inputs // { inherit (inputs.nixpkgs) lib; });
-      inherit (lib') import' forEachSystem;
+      extraArgs = {
+        inherit inputs lib;
+        stateVersion = "25.05";
+      };
     in
     {
+      # +--------------- darwin systems ---------------+
+
+      darwinConfigurations = {
+        airbender = import ./systems/aarch64-darwin/airbender extraArgs;
+      };
+
       # +------------- development shells -------------+
 
       devShells = forEachSystem systems (
-        { pkgs, system }@args:
+        { system, ... }@args:
         {
           default = self.devShells.${system}.nixos;
-          nixos = import ./shells/nixos.nix args;
+          nixos = import ./shells/nixos.nix (args // extraArgs);
+          hacking = import ./shells/hacking.nix (args // extraArgs);
         }
       );
 
@@ -31,6 +43,12 @@
       # +----------------- libraries ------------------+
 
       lib = lib';
+
+      # +--------------- nixos systems ----------------+
+
+      nixosConfigurations = {
+        wonderland = import ./systems/x86_64-linux/wonderland extraArgs;
+      };
 
       # +----------------- templates ------------------+
 
@@ -45,9 +63,33 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
+    # secret management
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # macOS support
+    darwin = {
+      url = "github:lnl7/nix-darwin";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # disk partitioning to be used with `nixos-anywhere`
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # user-defined configurations
     home-manager = {
       url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # nix darwin support
+    nix-darwin = {
+      url = "github:nix-darwin/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
