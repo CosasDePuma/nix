@@ -54,7 +54,9 @@
         };
         networking = {
           hostName = "vaultwarden";
-          firewall.allowedTCPPorts = [ config.containers."vaultwarden".config.services.vaultwarden.config.ROCKET_PORT ];
+          firewall.allowedTCPPorts = [
+            config.containers."vaultwarden".config.services.vaultwarden.config.ROCKET_PORT
+          ];
         };
       };
     };

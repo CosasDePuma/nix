@@ -9,10 +9,10 @@
 {
   containers = {
     "gitea" = {
+      localAddress = "10.100.0.10";
       autoStart = true;
       ephemeral = true;
       privateNetwork = true;
-      localAddress = "10.100.0.10";
       hostAddress = ipv4;
       bindMounts = {
         "${config.containers."gitea".config.services.gitea.stateDir}" = {
@@ -34,35 +34,66 @@
             shell = "/run/current-system/sw/bin/nologin";
           };
         };
+
+        # --- gitea
+
         services.gitea = {
           enable = true;
           user = "gitea";
           group = "gitea";
+          appName = "Wonderland Code";
           database.createDatabase = true;
           settings = {
-            server = {
+            "actions" = {
+              ENABLED = false;
+            };
+            "cron" = {
+              sync_external_users = false;
+            };
+            "picture" = {
+              DISABLE_GRAVATAR = true;
+            };
+            "repository" = {
+              DEFAULT_PRIVATE = true;
+            };
+            "server" = {
               DOMAIN = "git.${domain}";
               HTTP_ADDR = "0.0.0.0";
               HTTP_PORT = 3000;
               ROOT_URL = "https://${config.containers."gitea".config.services.gitea.settings.server.DOMAIN}";
             };
-            session = {
+            "service" = {
+              DISABLE_REGISTRATION = true;
+              DISABLE_SSH = false;
+            };
+            "session" = {
               COOKIE_SECURE = true;
             };
-            other = {
+            "other" = {
               SHOW_FOOTER_VERSION = false;
+            };
+            "ui" = {
+              DEFAULT_THEME = "gitea-dark";
+              SHOW_USER_EMAIL = false;
+              THEMES = "auto,gitea-light,gitea-dark";
+            };
+            "ui.meta" = {
+              AUTHOR = "Unicorns and Goblins";
+              DESCRIPTION = "Wonderland's Gitea instance";
             };
           };
           dump = {
             enable = true;
-            file = "gitea-backup";
+            file = "gitea-backup.tar";
             interval = "hourly";
-            type = "tar.gz";
+            type = "tar";
           };
         };
         networking = {
           hostName = "gitea";
-          firewall.allowedTCPPorts = [ config.containers."gitea".config.services.gitea.settings.server.HTTP_PORT ];
+          firewall.allowedTCPPorts = [
+            config.containers."gitea".config.services.gitea.settings.server.HTTP_PORT
+          ];
         };
       };
     };

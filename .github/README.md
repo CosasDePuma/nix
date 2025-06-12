@@ -1,5 +1,5 @@
 <div align="center">
-<img src=".github/logo.png" alt="nix" />
+<img src="logo.png" alt="nix" />
 <br/><br/>
 
 [![Built with Nix](https://img.shields.io/badge/Built%20with-Nix%20Flakes-5277C3?style=for-the-badge&logo=nixos&logoColor=white&labelColor=5e81ac&color=d8dee9)](https://nixos.org/)

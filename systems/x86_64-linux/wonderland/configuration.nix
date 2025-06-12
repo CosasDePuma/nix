@@ -23,6 +23,7 @@
       efiSupport = true;
       efiInstallAsRemovable = true;
     };
+    enableContainers = true;
     readOnlyNixStore = true;
   };
 
@@ -170,15 +171,36 @@
 
     cron = {
       enable = true;
-      systemCronJobs = with pkgs; [
-        # --- backups
-        "00 23  *  *  *  root  /run/current-system/sw/bin/tar -cf \"/mnt/backups/homelab-config-$(/run/current-system/sw/bin/date +%Y-%m-%d).tar\" -T /dev/null"
-        "01 23  *  *  *  root  /run/current-system/sw/bin/tar -rf \"/mnt/backups/homelab-config-$(/run/current-system/sw/bin/date +%Y-%m-%d).tar\" -C /persist traefik/acme.json"
-        "02 23  *  *  *  root  /run/current-system/sw/bin/tar -rf \"/mnt/backups/homelab-config-$(/run/current-system/sw/bin/date +%Y-%m-%d).tar\" -C /persist wg-easy/wg0.conf"
-        "03 23  *  *  *  root  /run/current-system/sw/bin/tar -rf \"/mnt/backups/homelab-config-$(/run/current-system/sw/bin/date +%Y-%m-%d).tar\" -C /persist vaultwarden/attachments/ vaultwarden/db.sqlite3 vaultwarden/db.sqlite3-shm vaultwarden/db.sqlite3-wal"
-        "04 23  *  *  *  root  /run/current-system/sw/bin/tar -rf \"/mnt/backups/homelab-config-$(/run/current-system/sw/bin/date +%Y-%m-%d).tar\" -C /persist komga/database.sqlite"
-        "59 23  *  *  *  root  /run/current-system/sw/bin/gzip \"/mnt/backups/homelab-config-$(/run/current-system/sw/bin/date +%Y-%m-%d).tar\""
-      ];
+      systemCronJobs =
+        let
+          backup = pkgs.writeShellScriptBin "backup" ''
+            #!${pkgs.runtimeShell}
+            # Backup script for homelab configuration
+            dstfolder="/mnt/backups"
+            dstfile="''${dstfolder}/homelab-config-$(date +%Y-%m-%d).tar"
+            /run/current-system/sw/bin/tar -cf "''${dstfile}" -T /dev/null
+            # -----------
+            # --- traefik
+            /run/current-system/sw/bin/tar -rf "''${dstfile}" -C /persist traefik/acme.json
+            # --- gitea
+            /run/current-system/sw/bin/mkdir -p /tmp/gitea
+            /run/current-system/sw/bin/tar -xf /persist/gitea/dump/gitea-backup.tar -C /tmp/gitea
+            /run/current-system/sw/bin/tar -rf "''${dstfile}" -C /tmp gitea
+            /run/current-system/sw/bin/rm -rf /tmp/gitea
+            # --- komga
+            /run/current-system/sw/bin/tar -rf "''${dstfile}" -C /persist komga/database.sqlite
+            # --- vaultwarden
+            /run/current-system/sw/bin/tar -rf "''${dstfile}" -C /persist vaultwarden/attachments/ vaultwarden/db.sqlite3 vaultwarden/db.sqlite3-shm vaultwarden/db.sqlite3-wal
+            # --- wg-easy
+            /run/current-system/sw/bin/tar -rf "''${dstfile}" -C /persist wg-easy/wg0.conf
+            # -----------
+            /run/current-system/sw/bin/gzip -f "''${dstfile}"
+          '';
+        in
+        [
+          # --- backups
+          "00 * * * *  root  ${backup}/bin/backup"
+        ];
     };
 
     # +-----------------------------------------+
