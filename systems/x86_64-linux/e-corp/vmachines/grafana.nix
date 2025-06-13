@@ -1,13 +1,30 @@
-{ domain, safeDir, ... }: { config, lib, ... }: {
+{
+  config ? throw "no imported as a module",
+  lib ? throw "no imported as a module",
+  domain ? throw "no domain provided",
+  ipv4 ? throw "no ipv4 address provided",
+  safeDir ? "/persist",
+  ...
+}:
+let
+  subdomain = "dashboard.${domain}";
+in
+{
   containers = {
     "grafana" = {
-      autoStart = true;                                 # Automatically start the container
-      ephemeral = true;                                 # Ephemeral container, will not persist data
-      privateNetwork = true;                            # Use a private network
-      localAddress = "10.100.0.4";                      # Local address for the container
-      hostAddress = (builtins.head config.networking.interfaces.${builtins.head (builtins.attrNames config.networking.interfaces)}.ipv4.addresses).address;
-      bindMounts = {                                    # Bind host folders inside the container
-        "/var/lib/grafana" = { isReadOnly = false; hostPath = "${safeDir}/grafana"; };
+      autoStart = true;
+      ephemeral = true;
+      privateNetwork = true;
+      localAddress = "10.100.0.4";
+      hostAddress =
+        (builtins.head
+          config.networking.interfaces.${builtins.head (builtins.attrNames config.networking.interfaces)}.ipv4.addresses
+        ).address;
+      bindMounts = {
+        "/var/lib/grafana" = {
+          isReadOnly = false;
+          hostPath = "${safeDir}/grafana";
+        };
       };
       config = {
 
@@ -15,40 +32,40 @@
 
         system.stateVersion = config.system.stateVersion;
         users = {
-          groups."vmachines" = config.users.groups."vmachines";
-          users."grafana" = {
-            uid = lib.mkForce config.users.users."vmachines".uid;
-            group = lib.mkForce "vmachines";
-            isSystemUser = true;
-            shell = "/run/current-system/sw/bin/nologin";
-          };
+          groups."grafana" = { inherit (config.users.groups."vmachines") gid; };
+          users."grafana".uid = lib.mkForce config.users.users."vmachines".uid;
         };
         services.grafana = {
-          enable = true;                                # Enable the grafana service
+          enable = true;
           settings = {
             server = {
-              http_addr = "0.0.0.0";                    # Address to listen on
-              http_port = 3000;                         # Port to listen on
-              domain = "monitor.${domain}";             # Domain for the service
+              http_addr = "0.0.0.0";
+              http_port = 3000;
+              domain = "monitor.${domain}";
               serve_from_sub_path = true;
             };
           };
         };
         networking = {
-          hostName = "grafana";                         # Hostname for the container
+          hostName = "grafana";
           nameservers = [ config.containers."dnsmasq".localAddress ];
-          firewall.allowedTCPPorts = [ config.containers."grafana".config.services.grafana.settings.server.http_port ];
+          firewall.allowedTCPPorts = [
+            config.containers."grafana".config.services.grafana.settings.server.http_port
+          ];
         };
       };
     };
-    "traefik".config.services.traefik.dynamicConfigOptions.http = {
-      routers."grafana" = {
-        rule = "Host(`monitor.${domain}`)";             # Rule to match the grafana service
-        service = "grafana";                            # Service to route to
-      };
-      services."grafana".loadBalancer.servers = [{      # Backend service
-        url = "http://${config.containers."grafana".localAddress}:${toString config.containers."grafana".config.services.grafana.settings.server.http_port}";
-      }];
-    };
+
+    # ============================= Proxy =============================
+
+    "caddy".config.services.caddy.virtualHosts."${subdomain}".extraConfig = ''
+      reverse_proxy http://${config.containers."grafana".localAddress}:${
+        toString config.containers."grafana".config.services.grafana.settings.server.http_port
+      }
+
+      tls /var/lib/acme/${domain}/cert.pem /var/lib/acme/${domain}/key.pem {
+        protocols tls1.2 tls1.3
+      }
+    '';
   };
 }

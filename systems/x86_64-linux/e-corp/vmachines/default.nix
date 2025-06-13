@@ -1,8 +1,11 @@
-_: { config, ... }: {
-  networking.nat = {
-    enable = true;                     # Enable NAT
-    enableIPv6 = false;                # Disable IPv6 NAT
-    internalInterfaces = [ "ve-+" ];   # Internal interfaces used by containers
-    externalInterface = builtins.head (builtins.attrNames config.networking.interfaces);
-  };
+_: {
+  imports = [
+    ./caddy.nix
+    ./dnsmasq.nix
+    ./endlessh.nix
+    ./gitea.nix
+    ./grafana.nix
+    ./prometheus.nix
+    ./vaultwarden.nix
+  ];
 }
