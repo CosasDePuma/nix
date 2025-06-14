@@ -58,6 +58,7 @@ in
         };
         networking = {
           hostName = "vaultwarden";
+          nameservers = [ config.containers."dnsmasq".localAddress ];
           firewall.allowedTCPPorts = [
             config.containers."vaultwarden".config.services.vaultwarden.config.ROCKET_PORT
           ];

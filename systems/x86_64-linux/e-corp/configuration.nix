@@ -316,9 +316,6 @@
   # +-------------------------------------------+
 
   systemd.tmpfiles.rules = lib.flatten (
-    # --- services
-    (lib.lists.optional config.services.caddy.enable "d ${safeDir}/caddy 0700 ${config.services.caddy.user} ${config.services.caddy.group} -")
-    ++
       # --- oci-container volumes
       (lib.mapAttrsToList (
         _: container:

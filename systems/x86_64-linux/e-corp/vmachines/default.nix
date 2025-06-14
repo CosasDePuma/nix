@@ -6,6 +6,7 @@ _: {
     ./gitea.nix
     ./grafana.nix
     ./prometheus.nix
+    ./send.nix
     ./vaultwarden.nix
   ];
 }
