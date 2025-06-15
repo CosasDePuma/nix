@@ -5,8 +5,6 @@
     { self, ... }@inputs:
     let
       inherit (inputs.nixpkgs) lib;
-      lib' = import ./lib.nix (inputs // lib);
-      inherit (lib') forEachSystem;
       systems = [
         "aarch64-darwin"
         "x86_64-linux"
@@ -15,6 +13,18 @@
         inherit inputs lib;
         stateVersion = "25.05";
       };
+      forEachSystem =
+        supportedSystems: fn:
+        lib.genAttrs supportedSystems (
+          system:
+          fn {
+            inherit system;
+            pkgs = import inputs.nixpkgs {
+              inherit system;
+              config.allowUnfree = true;
+            };
+          }
+        );
     in
     {
       # +--------------- darwin systems ---------------+
@@ -30,7 +40,6 @@
         {
           default = self.devShells.${system}.nixos;
           nixos = import ./shells/nixos.nix (args // extraArgs);
-          hacking = import ./shells/hacking.nix (args // extraArgs);
         }
       );
 
@@ -39,10 +48,6 @@
       formatter = forEachSystem systems (
         { system, ... }: inputs.nixpkgs.legacyPackages."${system}".nixfmt-tree
       );
-
-      # +----------------- libraries ------------------+
-
-      lib = lib';
 
       # +--------------- nixos systems ----------------+
 
@@ -53,6 +58,10 @@
       # +----------------- templates ------------------+
 
       templates = {
+        flake = {
+          path = ./templates/flake;
+          description = "Flake template";
+        };
         shell = {
           path = ./templates/shell;
           description = "Shell template for development environments";
@@ -66,12 +75,6 @@
     # secret management
     agenix = {
       url = "github:ryantm/agenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # macOS support
-    darwin = {
-      url = "github:lnl7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

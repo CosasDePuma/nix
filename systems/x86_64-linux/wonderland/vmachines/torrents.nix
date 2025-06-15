@@ -73,34 +73,8 @@
         };
       };
     };
-    "traefik".config.services.traefik.dynamicConfigOptions.http = {
+  
+    # ============================= Proxy =============================
 
-      # --- deluge ---
-
-      routers = {
-        "deluge" = {
-          rule = "Host(`download-torrents.${domain}`)";
-          service = "deluge";
-        };
-        "nzbget" = {
-          rule = "Host(`download-nzb.${domain}`)";
-          service = "nzbget";
-        };
-      };
-      services = {
-        "deluge".loadBalancer.servers = [
-          {
-            url = "http://${config.containers."torrents".localAddress}:${
-              toString config.containers."torrents".config.services.deluge.web.port
-            }";
-          }
-        ];
-        "nzbget".loadBalancer.servers = [
-          {
-            url = "http://${config.containers."torrents".localAddress}:6789";
-          }
-        ];
-      };
-    };
   };
 }

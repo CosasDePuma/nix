@@ -6,6 +6,9 @@
   safeDir ? "/persist",
   ...
 }:
+let
+  subdomain = "books.${domain}";
+in
 {
   containers = {
     "komga" = {
@@ -55,18 +58,16 @@
         networking.hostName = "komga";
       };
     };
-    "traefik".config.services.traefik.dynamicConfigOptions.http = {
-      routers."komga" = {
-        rule = "Host(`books.${domain}`)";
-        service = "komga";
-      };
-      services."komga".loadBalancer.servers = [
-        {
-          url = "http://${config.containers."komga".localAddress}:${
-            toString config.containers."komga".config.services.komga.settings.server.port
-          }";
-        }
-      ];
-    };
+
+    # ============================= Proxy =============================
+
+    "caddy".config.services.caddy.virtualHosts."${subdomain}".extraConfig = ''
+      import default-headers
+      import tls
+
+      reverse_proxy http://${config.containers."komga".localAddress}:${
+        toString config.containers."komga".config.services.komga.settings.server.port
+      }
+    '';
   };
 }

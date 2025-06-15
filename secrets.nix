@@ -4,11 +4,11 @@ let
 in
 {
   # arkham
-  "systems/x86_64-linux/wonderland/secrets/acme-token.age".publicKeys = [
+  "systems/x86_64-linux/wonderland/secrets/acme.env.age".publicKeys = [
     nixos
     vm-wonderland
   ];
-  "systems/x86_64-linux/wonderland/secrets/ddclient-token.age".publicKeys = [
+  "systems/x86_64-linux/wonderland/secrets/ddclient.token.age".publicKeys = [
     nixos
     vm-wonderland
   ];

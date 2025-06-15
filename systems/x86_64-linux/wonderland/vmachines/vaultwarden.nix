@@ -6,6 +6,9 @@
   safeDir ? "/persist",
   ...
 }:
+let
+  subdomain = "vault.${domain}";
+in
 {
   containers = {
     "vaultwarden" = {
@@ -15,7 +18,7 @@
       localAddress = "10.100.0.12";
       hostAddress = ipv4;
       bindMounts = {
-        "/run/.secrets" = {
+        "/run/agenix" = {
           isReadOnly = true;
           hostPath = "/run/agenix";
         };
@@ -43,35 +46,34 @@
           dbBackend = "sqlite";
           config = {
             DATA_FOLDER = "/var/lib/vaultwarden";
-            DOMAIN = "https://vault.${domain}";
+            DOMAIN = "https://${subdomain}";
             ROCKET_ADDRESS = "0.0.0.0";
             ROCKET_PORT = 8000;
             INVITATIONS_ALLOWED = false;
             SHOW_PASSWORD_HINT = false;
             SIGNUPS_ALLOWED = true;
           };
-          environmentFile = "/run/.secrets/vaultwarden-passwd";
+          environmentFile = "/run/agenix/vaultwarden.token";
         };
         networking = {
           hostName = "vaultwarden";
+          nameservers = [ config.containers."dnsmasq".localAddress ];
           firewall.allowedTCPPorts = [
             config.containers."vaultwarden".config.services.vaultwarden.config.ROCKET_PORT
           ];
         };
       };
     };
-    "traefik".config.services.traefik.dynamicConfigOptions.http = {
-      routers."vaultwarden" = {
-        rule = "Host(`vault.${domain}`)";
-        service = "vaultwarden";
-      };
-      services."vaultwarden".loadBalancer.servers = [
-        {
-          url = "http://${config.containers."vaultwarden".localAddress}:${
-            toString config.containers."vaultwarden".config.services.vaultwarden.config.ROCKET_PORT
-          }";
-        }
-      ];
-    };
+
+    # ============================= Proxy =============================
+
+    "caddy".config.services.caddy.virtualHosts."${subdomain}".extraConfig = ''
+      import default-headers
+      import tls
+
+      reverse_proxy http://${config.containers."vaultwarden".localAddress}:${
+        toString config.containers."vaultwarden".config.services.vaultwarden.config.ROCKET_PORT
+      }
+    '';
   };
 }

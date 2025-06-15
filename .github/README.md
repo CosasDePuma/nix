@@ -36,7 +36,8 @@ nix develop github:cosasdepuma/nix
 ## 🧩 What's inside?
 
 ```rb
-├───darwinConfigurations: Darwin configuration
+├───darwinConfigurations
+│   └───airbender: Darwin configuration
 ├───devShells
 │   ├───aarch64-darwin
 │   │   ├───default: development environment 'nixos'
@@ -47,10 +48,10 @@ nix develop github:cosasdepuma/nix
 ├───formatter
 │   ├───aarch64-darwin: package 'nixfmt-tree'
 │   └───x86_64-linux: package 'nixfmt-tree'
-├───lib: shared utilities
 ├───nixosConfigurations
 │   └───wonderland: NixOS configuration
 └───templates
+    └───flake: template: Flake template
     └───shell: template: Shell template for development environments
 ```
 

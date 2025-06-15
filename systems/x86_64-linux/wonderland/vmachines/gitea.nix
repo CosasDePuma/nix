@@ -6,6 +6,10 @@
   safeDir ? "/persist",
   ...
 }:
+let
+  subdomain = "git.${domain}";
+in
+
 {
   containers = {
     "gitea" = {
@@ -57,7 +61,7 @@
               DEFAULT_PRIVATE = true;
             };
             "server" = {
-              DOMAIN = "git.${domain}";
+              DOMAIN = subdomain;
               HTTP_ADDR = "0.0.0.0";
               HTTP_PORT = 3000;
               ROOT_URL = "https://${config.containers."gitea".config.services.gitea.settings.server.DOMAIN}";
@@ -97,18 +101,16 @@
         };
       };
     };
-    "traefik".config.services.traefik.dynamicConfigOptions.http = {
-      routers."gitea" = {
-        rule = "Host(`git.${domain}`)";
-        service = "gitea";
-      };
-      services."gitea".loadBalancer.servers = [
-        {
-          url = "http://${config.containers."gitea".localAddress}:${
-            toString config.containers."gitea".config.services.gitea.settings.server.HTTP_PORT
-          }";
-        }
-      ];
-    };
+
+    # ============================= Proxy =============================
+
+    "caddy".config.services.caddy.virtualHosts."${subdomain}".extraConfig = ''
+      import default-headers
+      import tls
+
+      reverse_proxy http://${config.containers."gitea".localAddress}:${
+        toString config.containers."gitea".config.services.gitea.settings.server.HTTP_PORT
+      }
+    '';
   };
 }

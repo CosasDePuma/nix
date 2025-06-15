@@ -4,6 +4,10 @@
   safeDir ? "/persist",
   ...
 }:
+let
+  int-ipv4 = "10.200.0.2";
+  subdomain = "vpn.${domain}";
+in
 {
   virtualisation.oci-containers.containers."wg-easy" = {
     autoStart = true;
@@ -18,7 +22,8 @@
     environment = {
       ENABLE_PROMETHEUS_METRICS = "true";
       LANG = "en";
-      WG_HOST = "vpn.${domain}";
+      PORT = "51821";
+      WG_HOST = subdomain;
       WG_DEFAULT_ADDRESS = "10.0.0.x";
       UI_ENABLE_SORT_CLIENTS = "true";
       UI_TRAFFIC_STATS = "true";
@@ -27,6 +32,7 @@
       WG_DEFAULT_DNS = config.containers."dnsmasq".localAddress;
     };
     extraOptions = [
+      "--ip=${int-ipv4}"
       "--sysctl=net.ipv4.ip_forward=1"
       "--sysctl=net.ipv4.conf.all.src_valid_mark=1"
     ];
@@ -40,4 +46,12 @@
       "${safeDir}/wg-easy:/etc/wireguard:rw"
     ];
   };
+  containers."caddy".config.services.caddy.virtualHosts."${subdomain}".extraConfig = ''
+    import default-headers
+    import tls
+
+    reverse_proxy http://${int-ipv4}:${
+      toString config.virtualisation.oci-containers.containers."wg-easy".environment.PORT
+    }
+  '';
 }

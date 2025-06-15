@@ -21,9 +21,7 @@
         enable = true;
         resolveLocalQueries = false;
         settings = {
-          address =
-            lib.optionals (config.containers ? "traefik")
-              "/${domain}/${config.containers."traefik".localAddress}";
+          address = [ "/${domain}/${config.containers."caddy".localAddress}" ];
           bogus-priv = true;
           bind-interfaces = true;
           cache-size = 1000;

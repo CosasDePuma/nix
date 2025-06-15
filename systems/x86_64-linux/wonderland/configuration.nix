@@ -60,8 +60,8 @@
               "x-systemd.mount-timeout=10m"
             ]
             ++ (lib.lists.optional (
-              config ? "age" && config.age.secrets ? "smb-credentials"
-            ) "credentials=/run/agenix/smb-credentials");
+              config ? "age" && config.age.secrets ? "smb.creds"
+            ) "credentials=/run/agenix/smb.creds");
         };
       }
     ) shares
@@ -83,6 +83,7 @@
     hostId = builtins.substring 0 8 (builtins.hashString "md5" config.networking.hostName);
 
     # --- interfaces
+    enableIPv6 = false;
     usePredictableInterfaceNames = false;
     interfaces."eth0".ipv4.addresses = [
       {
@@ -149,6 +150,18 @@
   # +-------------------------------------------+
 
   security = {
+    acme = {
+      acceptTerms = true;
+      certs."${domain}" = {
+        inherit dnsProvider domain;
+        email = "acme@${domain}";
+        group = "vmachines";
+        extraDomainNames = [ "*.${domain}" ];
+        dnsResolver = "1.1.1.1:53";
+        dnsPropagationCheck = true;
+        environmentFile = "/run/agenix/acme.env";
+      };
+    };
     pam = {
       sshAgentAuth.enable = true;
       services."sudo".sshAgentAuth = true;
@@ -180,8 +193,6 @@
             dstfile="''${dstfolder}/homelab-config-$(date +%Y-%m-%d).tar"
             /run/current-system/sw/bin/tar -cf "''${dstfile}" -T /dev/null
             # -----------
-            # --- traefik
-            /run/current-system/sw/bin/tar -rf "''${dstfile}" -C /persist traefik/acme.json
             # --- gitea
             /run/current-system/sw/bin/mkdir -p /tmp/gitea
             /run/current-system/sw/bin/tar -xf /persist/gitea/dump/gitea-backup.tar -C /tmp/gitea
@@ -189,6 +200,8 @@
             /run/current-system/sw/bin/rm -rf /tmp/gitea
             # --- komga
             /run/current-system/sw/bin/tar -rf "''${dstfile}" -C /persist komga/database.sqlite
+            # --- traefik
+            /run/current-system/sw/bin/tar -rf "''${dstfile}" -C /persist traefik/acme.json
             # --- vaultwarden
             /run/current-system/sw/bin/tar -rf "''${dstfile}" -C /persist vaultwarden/attachments/ vaultwarden/db.sqlite3 vaultwarden/db.sqlite3-shm vaultwarden/db.sqlite3-wal
             # --- wg-easy
@@ -198,8 +211,10 @@
           '';
         in
         [
+          # --- reboot
+          "01 05  *  *  *  root  /run/current-system/sw/bin/reboot"
           # --- backups
-          "00 * * * *  root  ${backup}/bin/backup"
+          "00  *  *  *  *  root  ${backup}/bin/backup"
         ];
     };
 
@@ -213,8 +228,8 @@
       interval = "1h";
       protocol = dnsProvider;
       passwordFile =
-        if (config ? "age" && config.age.secrets ? "ddclient-token") then
-          "/run/agenix/ddclient-token"
+        if (config ? "age" && config.age.secrets ? "ddclient.token") then
+          "/run/agenix/ddclient.token"
         else
           null;
       verbose = true;
@@ -336,7 +351,8 @@
       ''
         #!/bin/sh
         # Create the OCI containers networks
-        ${pkgs.${backend}}/bin/${backend} network create --subnet=172.20.0.0/24 public || :
+        ${pkgs."${backend}"}/bin/${backend} network inspect public >/dev/null || \
+          ${pkgs."${backend}"}/bin/${backend} network create --subnet=10.200.0.0/24 public
       '';
   };
 
@@ -431,7 +447,7 @@
           "sshuser"
         ];
         openssh.authorizedKeys.keys = [
-          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP9RzisL6wVQK3scDyEPEpFgrcdFYkW9LssnWlORGXof nixos@infra"
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP9RzisL6wVQK3scDyEPEpFgrcdFYkW9LssnWlORGXof @nixos"
         ];
       };
 

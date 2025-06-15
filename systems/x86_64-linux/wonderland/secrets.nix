@@ -16,10 +16,10 @@ lib.mkIf (config ? "age") {
         };
       in
       {
-        "acme-token" = mkSecret ./secrets/acme-token.age;
-        "ddclient-token" = mkSecret ./secrets/ddclient-token.age;
-        "smb-credentials" = mkSecret ./secrets/smb-credentials.age;
-        "vaultwarden-passwd" = mkSecret ./secrets/vaultwarden-passwd.age;
+        "acme.env" = mkSecret ./secrets/acme.env.age;
+        "ddclient.token" = mkSecret ./secrets/ddclient.token.age;
+        "smb.creds" = mkSecret ./secrets/smb.creds.age;
+        "vaultwarden.token" = mkSecret ./secrets/vaultwarden.token.age;
       };
   };
 }
