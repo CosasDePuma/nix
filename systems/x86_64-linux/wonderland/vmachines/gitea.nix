@@ -13,7 +13,7 @@ in
 {
   containers = {
     "gitea" = {
-      localAddress = "10.100.0.10";
+      localAddress = "10.100.0.12";
       autoStart = true;
       ephemeral = true;
       privateNetwork = true;
@@ -105,9 +105,7 @@ in
     # ============================= Proxy =============================
 
     "caddy".config.services.caddy.virtualHosts."${subdomain}".extraConfig = ''
-      import default-headers
-      import tls
-
+      import defaults
       reverse_proxy http://${config.containers."gitea".localAddress}:${
         toString config.containers."gitea".config.services.gitea.settings.server.HTTP_PORT
       }

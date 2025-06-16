@@ -1,6 +1,5 @@
 {
   config ? throw "no imported as a module",
-  lib ? throw "no imported as a module",
   domain ? throw "no domain provided",
   ipv4 ? throw "no ipv4 address provided",
   ...

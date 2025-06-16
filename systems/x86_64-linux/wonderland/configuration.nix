@@ -335,7 +335,7 @@
     autoUpgrade = {
       enable = true;
       flake = "github:cosasdepuma/nix";
-      dates = "daily";
+      dates = "weekly";
       operation = "switch";
       persistent = true;
     };

@@ -15,7 +15,7 @@ in
       autoStart = true;
       ephemeral = true;
       privateNetwork = true;
-      localAddress = "10.100.0.11";
+      localAddress = "10.100.0.13";
       hostAddress = ipv4;
       bindMounts = {
         "/srv/comics" = {
@@ -62,9 +62,7 @@ in
     # ============================= Proxy =============================
 
     "caddy".config.services.caddy.virtualHosts."${subdomain}".extraConfig = ''
-      import default-headers
-      import tls
-
+      import defaults
       reverse_proxy http://${config.containers."komga".localAddress}:${
         toString config.containers."komga".config.services.komga.settings.server.port
       }

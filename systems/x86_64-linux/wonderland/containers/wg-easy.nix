@@ -11,7 +11,7 @@ in
 {
   virtualisation.oci-containers.containers."wg-easy" = {
     autoStart = true;
-    image = "ghcr.io/wg-easy/wg-easy:nightly"; # Image to use # FIXME(safety): Use a 'latest' or 'production'
+    image = "ghcr.io/wg-easy/wg-easy:nightly"; # TODO(upgrade): use v15 or above when fully supported
     hostname = "wg-easy";
     networks = [ "public" ];
     capabilities = {
@@ -47,9 +47,7 @@ in
     ];
   };
   containers."caddy".config.services.caddy.virtualHosts."${subdomain}".extraConfig = ''
-    import default-headers
-    import tls
-
+    import defaults
     reverse_proxy http://${int-ipv4}:${
       toString config.virtualisation.oci-containers.containers."wg-easy".environment.PORT
     }

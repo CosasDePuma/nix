@@ -15,7 +15,7 @@ in
       autoStart = true;
       ephemeral = true;
       privateNetwork = true;
-      localAddress = "10.100.0.12";
+      localAddress = "10.100.0.11";
       hostAddress = ipv4;
       bindMounts = {
         "/run/agenix" = {
@@ -68,9 +68,7 @@ in
     # ============================= Proxy =============================
 
     "caddy".config.services.caddy.virtualHosts."${subdomain}".extraConfig = ''
-      import default-headers
-      import tls
-
+      import defaults
       reverse_proxy http://${config.containers."vaultwarden".localAddress}:${
         toString config.containers."vaultwarden".config.services.vaultwarden.config.ROCKET_PORT
       }

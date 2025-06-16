@@ -53,10 +53,18 @@
           #}
         '';
         extraConfig = ''
+          (defaults) {
+            import encoding
+            import default-headers
+            import tls
+          }
           (default-headers) {
             import joke-headers
             import security-headers
             import unwanted-headers
+          }
+          (encoding) {
+            encode gzip zstd
           }
           (joke-headers) {
             header {
