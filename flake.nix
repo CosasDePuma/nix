@@ -39,6 +39,7 @@
         { system, ... }@args:
         {
           default = self.devShells.${system}.nixos;
+          hacking-infra = import ./shells/hacking-infra.nix (args // extraArgs);
           nixos = import ./shells/nixos.nix (args // extraArgs);
         }
       );

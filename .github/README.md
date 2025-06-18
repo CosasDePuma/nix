@@ -41,9 +41,11 @@ nix develop github:cosasdepuma/nix
 ├───devShells
 │   ├───aarch64-darwin
 │   │   ├───default: development environment 'nixos'
+│       └───hacking-infra: development environment 'hacking-infra'
 │   │   └───nixos: development environment 'nixos'
 │   └───x86_64-linux
 │       ├───default: development environment 'nixos'
+│       └───hacking-infra: development environment 'hacking-infra'
 │       └───nixos: development environment 'nixos'
 ├───formatter
 │   ├───aarch64-darwin: package 'nixfmt-tree'

@@ -15,7 +15,7 @@ in
       autoStart = true;
       ephemeral = true;
       privateNetwork = true;
-      localAddress = "10.100.0.5";
+      localAddress = "10.100.0.4";
       hostAddress =
         (builtins.head
           config.networking.interfaces.${builtins.head (builtins.attrNames config.networking.interfaces)}.ipv4.addresses

@@ -163,6 +163,7 @@
         (organize "Hacking" [
           "burp-suite"
           "cyberduck"
+          "obsidian"
         ])
         (organize "HomeLab" [
           "bitwarden"
@@ -171,6 +172,8 @@
           "balenaetcher"
           "brave-browser"
           "flameshot"
+          "font-fira-code-nerd-font"
+          "font-jetbrains-mono-nerd-font"
           "the-unarchiver"
           "vlc"
           "webtorrent"
